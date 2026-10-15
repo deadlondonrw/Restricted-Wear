@@ -1,103 +1,210 @@
 /* ==========================================================================
-   RESTRICTED WEAR — data
+   RESTRICTED WEAR — data (Version 1.2)
+   All prices are example prices in EUR until real pricing is finalized.
    ========================================================================== */
 var RW = window.RW || {};
 
+/* --------------------------------------------------------------------------
+   Categories
+   `key` is stored on products; `slug` is used in URLs (#/shop/<slug>).
+   -------------------------------------------------------------------------- */
+RW.CATEGORIES = [
+  { key: "T-SHIRTS", slug: "t-shirts", subs: ["OVERSIZED", "SLIM", "CLASSIC"] },
+  { key: "HOODIES", slug: "hoodies", subs: [] },
+  { key: "ZIP HOODIES", slug: "zip-hoodies", subs: [] },
+  { key: "JEANS", slug: "jeans", subs: ["LOOSE", "BAGGY", "BELL-BOTTOMS"] }
+];
+
+/* Shown as STILL DEVELOPING. No products exist in these yet. */
+RW.FUTURE_CATEGORIES = [
+  { key: "SNEAKERS", slug: "sneakers" },
+  { key: "JEWELRY", slug: "jewelry" },
+  { key: "BAGS", slug: "bags" },
+  { key: "HEADWEAR", slug: "headwear" }
+];
+
+/* --------------------------------------------------------------------------
+   Creative directions
+   -------------------------------------------------------------------------- */
+RW.DIRECTIONS = {
+  MAINSTREAM: {
+    key: "MAINSTREAM",
+    slug: "mainstream",
+    desc: "The primary direction of Restricted Wear, developed by its founder."
+  },
+  SECONDSTREAM: {
+    key: "SECONDSTREAM",
+    slug: "secondstream",
+    desc: "The secondary direction. A freer relationship between colour and emotion."
+  }
+};
+
+/* --------------------------------------------------------------------------
+   Products — real Restricted Wear works.
+   Names, directions and prices exactly as supplied by the designer.
+   variants: colourways. Each has images [FRONT, BACK] in img/products/<id>/<colour>-<view>.png
+             The first variant is the default (cards, cart thumbnails).
+             Mainstream T-shirts are rebuilt on the master templates (tshirt_white/black_front/back).
+             Secondstream keeps its own PNG mockups (exposure-normalised only).
+   stream:   MAINSTREAM | SECONDSTREAM
+   status:   AVAILABLE | RESTRICTED | LOW STOCK
+             RESTRICTED pieces require an active Red Card to purchase.
+   featured: shown on the Home page.
+   -------------------------------------------------------------------------- */
 RW.PRODUCTS = [
   {
-    id: "jessie-luxury-tee",
-    name: "JESSIE LUXURY TEE",
-    code: "RW-01",
+    id: "jessie-jessie-luxury",
+    name: "jessie + jessie luxury",        /* Frame 44 */
     stream: "MAINSTREAM",
     gender: "ALL",
     category: "T-SHIRTS",
-    price: 185,
-    status: "RESTRICTED",
-    desc: "A double signature run. Two archive marks printed off-register on a heavyweight base, left to fade unevenly by design.",
-    sizes: { XS: true, S: true, M: true, L: false, XL: true },
-    specs: { MATERIAL: "220GSM COTTON", WEIGHT: "HEAVY", FIT: "BOXED", "ITEM CODE": "RW-01" }
-  },
-  {
-    id: "restricted-tee-01",
-    name: "BASE TEE 01",
-    code: "RW-02",
-    stream: "MAINSTREAM",
-    gender: "MEN",
-    category: "T-SHIRTS",
-    price: 120,
+    sub: null,
+    price: 399.99,
     status: "AVAILABLE",
-    desc: "The base garment. Minimal branding, one small woven label at the hem stating what it is and what it is not.",
+    featured: true,
+    desc: "Printed on the front, plain on the back.",
     sizes: { XS: true, S: true, M: true, L: true, XL: true },
-    specs: { MATERIAL: "200GSM COTTON", WEIGHT: "MID", FIT: "REGULAR", "ITEM CODE": "RW-02" }
+    specs: {},
+    variants: [
+      { key: "burgundy", label: "BURGUNDY", images: ["img/products/jessie-jessie-luxury/burgundy-front.png", "img/products/jessie-jessie-luxury/burgundy-back.png"] },
+      { key: "white", label: "WHITE", images: ["img/products/jessie-jessie-luxury/white-front.png", "img/products/jessie-jessie-luxury/white-back.png"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
   },
   {
-    id: "authorization-hoodie",
-    name: "AUTHORIZATION HOODIE",
-    code: "RW-03",
+    id: "paris-hilton",
+    name: "paris hilton",                  /* Frame 45 */
     stream: "MAINSTREAM",
     gender: "ALL",
-    category: "HOODIES",
-    price: 340,
-    status: "RESTRICTED",
-    desc: "Interior pocket sized for a single card. Built for the Red Card authorization system.",
-    sizes: { XS: false, S: true, M: true, L: true, XL: false },
-    specs: { MATERIAL: "480GSM FLEECE", WEIGHT: "HEAVY", FIT: "OVERSIZED", "ITEM CODE": "RW-03" }
+    category: "T-SHIRTS",
+    sub: null,
+    price: 299.99,
+    status: "AVAILABLE",
+    featured: true,
+    desc: "Printed on the front and the back.",
+    sizes: { XS: true, S: true, M: true, L: true, XL: true },
+    specs: {},
+    variants: [
+      { key: "white", label: "WHITE", images: ["img/products/paris-hilton/white-front.png", "img/products/paris-hilton/white-back.png"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
   },
   {
-    id: "baggy-fit-jeans",
-    name: "BAGGY FIT JEANS",
-    code: "RW-04",
-    stream: "SECONDSTREAM",
-    gender: "WOMEN",
-    category: "JEANS",
-    price: 410,
-    status: "RESTRICTED",
-    desc: "Exaggerated proportions with structured denim holding the silhouette away from the leg. Restrained red stitching on the inseam.",
-    sizes: { XS: true, S: true, M: true, L: true, XL: false },
-    specs: { MATERIAL: "14OZ DENIM", WEIGHT: "HEAVY", FIT: "BAGGY", "ITEM CODE": "RW-04" }
+    id: "restricted-wear-erd",
+    name: "restricted wear erd",           /* Frame 46 */
+    stream: "MAINSTREAM",
+    gender: "ALL",
+    category: "T-SHIRTS",
+    sub: null,
+    price: 249.99,
+    status: "AVAILABLE",
+    featured: false,
+    desc: "Printed on the front and the back.",
+    sizes: { XS: true, S: true, M: true, L: true, XL: true },
+    specs: {},
+    variants: [
+      { key: "white", label: "WHITE", images: ["img/products/restricted-wear-erd/white-front.png", "img/products/restricted-wear-erd/white-back.png"] },
+      { key: "black", label: "BLACK", images: ["img/products/restricted-wear-erd/black-front.png", "img/products/restricted-wear-erd/black-back.png"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
   },
   {
-    id: "archive-zip-hoodie",
-    name: "ARCHIVE ZIP HOODIE",
-    code: "RW-05",
+    id: "alex-g7",
+    name: "alex g7#",                      /* Frame 47 */
     stream: "SECONDSTREAM",
-    gender: "MEN",
-    category: "HOODIES",
-    price: 365,
-    status: "LOW STOCK",
-    desc: "Reissued from an internal reference sample. Cuffs are left raw. Two-way hardware zip.",
-    sizes: { XS: true, S: false, M: true, L: true, XL: true },
-    specs: { MATERIAL: "500GSM FLEECE", WEIGHT: "HEAVY", FIT: "SLIM", "ITEM CODE": "RW-05" }
+    gender: "ALL",
+    category: "T-SHIRTS",
+    sub: null,
+    price: 249.99,
+    status: "AVAILABLE",
+    featured: true,
+    desc: "White T-shirt. Printed on the front, plain on the back.",
+    sizes: { XS: true, S: true, M: true, L: true, XL: true },
+    specs: {},
+    variants: [
+      { key: "white", label: "WHITE", images: ["img/products/alex-g7/white-front.png", "img/products/alex-g7/white-back.png"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
+  },
+  {
+    id: "jagermejsterholic",
+    name: "jagermejsterholic",             /* Frame 48 */
+    stream: "SECONDSTREAM",
+    gender: "ALL",
+    category: "T-SHIRTS",
+    sub: null,
+    price: 449.99,
+    status: "AVAILABLE",
+    featured: false,
+    desc: "White T-shirt. Printed on the front and on the sleeve, plain on the back.",
+    sizes: { XS: true, S: true, M: true, L: true, XL: true },
+    specs: {},
+    variants: [
+      { key: "white", label: "WHITE", images: ["img/products/jagermejsterholic/white-front.png", "img/products/jagermejsterholic/white-back.png"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
   }
 ];
 
+/* Product ids from earlier versions — keeps saved bags working where possible. */
+RW.LEGACY_IDS = {
+  "jessie-luxury-tee": "jessie-jessie-luxury"
+};
+
+/* --------------------------------------------------------------------------
+   Editorial imagery (optional). Set paths when photography is available.
+   -------------------------------------------------------------------------- */
+RW.EDITORIAL = {
+  lead: null,
+  mainstream: null,
+  secondstream: null
+};
+
+/* --------------------------------------------------------------------------
+   Archive
+   -------------------------------------------------------------------------- */
 RW.ARCHIVE = [
   {
-    date: "INTERNAL RECORD",
-    title: "The Authoric Document is formalized.",
-    body: "What began as an informal request became the Red Card system. Access is assigned to specific garments rather than uniformly across the collection."
+    label: "DIRECTIONS",
+    title: "Mainstream and Secondstream.",
+    body: "The work is divided into two directions. They are presented separately and belong to the same project."
   },
   {
-    date: "SIGNATURE RUN",
-    title: "A signature run, deliberately off-register.",
-    body: "Two marks, printed slightly out of alignment on purpose. Internal notes refer to it as 'the luxury problem' without further comment."
+    label: "RED CARD",
+    title: "The Red Card is introduced.",
+    body: "Purchasing is tied to an account. Selected pieces also require an active Red Card."
   },
   {
-    date: "REFERENCE ARCHIVE",
-    title: "A reference sample re-enters circulation.",
-    body: "No first release date has been located for this specific garment wash. It is catalogued as a reissue on the assumption that an original exists in the vault."
+    label: "SIGNATURE",
+    title: "A signature print, left off-register.",
+    body: "Two marks printed slightly out of alignment on purpose. The effect was kept."
   },
   {
-    date: "STATUS: ACTIVE",
-    title: "The authorization system remains active.",
-    body: "Most unverified purchase requests are declined immediately. This restriction is treated internally as an uncompromisable standard for the brand."
+    label: "REISSUE",
+    title: "A reference sample returns.",
+    body: "The zip hoodie is reissued from an internal sample, with raw cuffs and a two-way zip. No earlier release date is recorded."
   }
 ];
 
+/* --------------------------------------------------------------------------
+   Red Card identifier
+   94 digits: [4-digit prefix] + [90 random digits]. Digits only.
+   With a small probability the prefix itself is random.
+   -------------------------------------------------------------------------- */
+RW.REDCARD = {
+  LENGTH: 94,
+  PREFIXES: ["2094", "8888", "6666", "4546", "9999"],
+  RANDOM_PREFIX_CHANCE: 0.08
+};
+
+/* --------------------------------------------------------------------------
+   Brand / contact
+   -------------------------------------------------------------------------- */
 RW.BRAND = {
   name: "RESTRICTED WEAR",
-  tagline: "ACCESS IS NOT GUARANTEED.",
-  code: "RESTRICTED",
-  contactDept: "RED CARD",
-  email: "redcardocsed@gmail.com"
+  businessEmail: "restrictedwearofficial@gmail.com",
+  redCardEmail: "redcardocsed@gmail.com",
+  telegram: "@restrictedwear",
+  telegramUrl: "https://t.me/restrictedwear",
+  currency: "EUR"
 };
