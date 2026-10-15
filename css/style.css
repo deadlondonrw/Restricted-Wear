@@ -11,7 +11,7 @@
   --off-white: #ece6da;
   --dim: #8f887d;
   --dim-2: #5f5a52;
-  
+
   /* brand colors */
   --burgundy: #4a0000;
   --burgundy-bright: #7C0000;
@@ -82,7 +82,8 @@ ul { margin: 0; padding: 0; list-style: none; }
 .rule { border: none; border-top: 1px solid var(--line); margin: 0; }
 .wrap { max-width: var(--max-w); margin: 0 auto; padding: 0 var(--gutter); }
 
-.nav-logo { height: 16px; width: 16px; margin-right: 12px; display: inline-block; vertical-align: middle; }
+.nav-logo { height: 16px; width: 16px; margin-right: 12px; display: inline-block; vertical-align: middle; object-fit: contain; }
+body.light-theme .nav-logo { filter: invert(1); }
 
 /* ==========================================================================
    Loader
@@ -95,8 +96,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 }
 #loader.hide { opacity: 0; visibility: hidden; pointer-events: none; }
 #loader .loader-inner { text-align: center; width: 100%; max-width: 600px; padding: 20px; }
-#loader .l-code { font-family: var(--f-mono); font-size: 11px; letter-spacing: 0.3em; color: #8f887d; margin-bottom: 24px; }
-#loader .l-img { width: 100%; max-height: 80px; object-fit: contain; margin: 0 auto 24px; filter: brightness(0) invert(1); }
+#loader .l-img { width: auto; max-width: 280px; height: auto; margin: 0 auto 28px; display: block; }
 #loader .l-status { font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.2em; color: #8f887d; margin-top: 18px; height: 14px; }
 #loader .l-status.granted { color: #fff; }
 #loader .l-bar { width: 240px; height: 1px; background: #26221e; margin: 24px auto 0; position: relative; overflow: hidden; }
@@ -159,18 +159,18 @@ ul { margin: 0; padding: 0; list-style: none; }
 .page { animation: pagein .35s ease; }
 @keyframes pagein { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
-.page-head { padding: 50px 0 30px; }
-.page-head .kicker { color: var(--dim); margin-bottom: 14px; }
-.page-head h1 { font-size: clamp(34px, 5.5vw, 58px); margin: 0; }
+.page-head { padding: 68px 0 40px; }
+.page-head .kicker { color: var(--dim); margin-bottom: 16px; }
+.page-head h1 { font-size: clamp(34px, 5.5vw, 58px); margin: 0; letter-spacing: -0.01em; }
 
-.hero { display: grid; grid-template-columns: 1.5fr 1fr; gap: var(--gutter-lg); padding: 54px 0 60px; border-bottom: 1px solid var(--line-soft); align-items: end; }
-.hero-word { font-size: clamp(52px, 10vw, 128px); }
+.hero { display: grid; grid-template-columns: 1.5fr 1fr; gap: var(--gutter-lg); padding: 76px 0 84px; border-bottom: 1px solid var(--line-soft); align-items: end; }
+.hero-word { font-size: clamp(52px, 10vw, 128px); letter-spacing: -0.015em; }
 .hero-sub { margin: 22px 0 30px; font-size: 15px; color: var(--dim); max-width: 34ch; }
 .hero-actions { display: flex; gap: 14px; flex-wrap: wrap; }
 @media (max-width: 860px) { .hero { grid-template-columns: 1fr; } }
 
-.section { padding: 64px 0; }
-.section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 28px; padding-bottom: 16px; border-bottom: 1px solid var(--line-soft); gap: 16px; flex-wrap: wrap; }
+.section { padding: 88px 0; }
+.section-head { display: flex; align-items: baseline; justify-content: space-between; margin-bottom: 34px; padding-bottom: 18px; border-bottom: 1px solid var(--line-soft); gap: 16px; flex-wrap: wrap; }
 .section-head h2 { font-size: clamp(24px, 3.5vw, 36px); margin: 0; }
 .section-head .see-all { font-family: var(--f-mono); font-size: 11.5px; letter-spacing: 0.1em; color: var(--dim); }
 .section-head .see-all:hover { color: var(--off-white); }
@@ -181,13 +181,13 @@ ul { margin: 0; padding: 0; list-style: none; }
 
 .card { background: var(--black); display: flex; flex-direction: column; }
 .card-media { position: relative; aspect-ratio: 3 / 4; overflow: hidden; background: var(--charcoal); }
-.placeholder-art { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background-image: repeating-linear-gradient(45deg, var(--charcoal-2) 0 2px, transparent 2px 14px); transition: transform .5s ease; }
-.card:hover .placeholder-art { transform: scale(1.035); }
+.placeholder-art { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; background-image: repeating-linear-gradient(45deg, var(--charcoal-2) 0 2px, transparent 2px 14px); transition: transform .7s cubic-bezier(0.16, 1, 0.3, 1); }
+.card:hover .placeholder-art { transform: scale(1.03); }
 .placeholder-code { font-family: var(--f-mono); font-size: 12px; letter-spacing: 0.15em; color: var(--dim-2); }
 .card-status-tag { position: absolute; top: 10px; left: 10px; font-family: var(--f-mono); font-size: 10px; letter-spacing: 0.12em; padding: 4px 8px; background: var(--black); border: 1px solid var(--line); color: var(--dim); text-transform: uppercase; }
 .card-status-tag.restricted { color: var(--burgundy-bright); border-color: var(--burgundy-bright); }
-.card-body { padding: 16px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
-.card-name { font-family: var(--f-display); font-size: 17px; text-transform: uppercase; letter-spacing: 0.01em; }
+.card-body { padding: 20px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.card-name { font-family: var(--f-display); font-size: 17px; text-transform: uppercase; letter-spacing: -0.005em; }
 .card-code { font-family: var(--f-mono); font-size: 10.5px; color: var(--dim-2); letter-spacing: 0.08em; }
 .card-bottom { margin-top: auto; display: flex; justify-content: space-between; align-items: center; padding-top: 10px; }
 .card-price { font-family: var(--f-mono); font-size: 13px; display: flex; align-items: center; }
@@ -210,7 +210,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 .pd-thumb { flex: 1; aspect-ratio: 1; background: var(--charcoal); border: 1px solid var(--line-soft); cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .pd-thumb.active { border-color: var(--off-white); }
 .pd-info .code-line { display: flex; justify-content: space-between; color: var(--dim); margin-bottom: 10px; }
-.pd-info h1 { font-size: clamp(28px, 4vw, 44px); margin: 0 0 6px; }
+.pd-info h1 { font-size: clamp(28px, 4vw, 44px); margin: 0 0 6px; letter-spacing: -0.01em; }
 .pd-price { font-family: var(--f-mono); font-size: 18px; margin-bottom: 20px; }
 .pd-desc { color: var(--dim); max-width: 46ch; margin-bottom: 26px; }
 .pd-auth-notice { border: 1px solid var(--burgundy-bright); padding: 14px 16px; margin-bottom: 26px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
