@@ -50,6 +50,7 @@ RW.DIRECTIONS = {
    status:   AVAILABLE | RESTRICTED | LOW STOCK
              RESTRICTED pieces require an active Red Card to purchase.
    featured: shown on the Home page.
+   audio:    optional { src, volume, loop }. Plays while the product page is open.
    -------------------------------------------------------------------------- */
 RW.PRODUCTS = [
   {
@@ -87,7 +88,9 @@ RW.PRODUCTS = [
     variants: [
       { key: "white", label: "WHITE", images: ["img/products/paris-hilton/white-front.png", "img/products/paris-hilton/white-back.png"] }
     ],
-    imageLabels: ["FRONT", "BACK"]
+    imageLabels: ["FRONT", "BACK"],
+    /* Plays while this product's page is open. volume: 0 to 1 (0.5 = medium). */
+    audio: { src: "audio/paris-hilton.mp3", volume: 0.5 }
   },
   {
     id: "restricted-wear-erd",

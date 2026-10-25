@@ -321,6 +321,8 @@ ul { margin: 0; padding: 0; list-style: none; }
 @media (max-width: 900px) { .pd-info { position: static; } }
 .pd-info .code-line { display: flex; gap: 18px; flex-wrap: wrap; color: var(--dim); margin-bottom: 18px; }
 .pd-info .code-line .restricted { color: var(--accent); }
+.pd-info .code-line .sound-toggle { background: none; border: none; padding: 0; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; transition: color .18s ease; }
+.pd-info .code-line .sound-toggle:hover { color: var(--fg); }
 .pd-info h1 { font-size: clamp(30px, 3.6vw, 46px); margin: 0 0 14px; }
 .pd-price { font-size: 19px; font-variant-numeric: tabular-nums; margin-bottom: 28px; }
 .pd-desc { color: var(--dim); max-width: 46ch; margin: 0 0 30px; }

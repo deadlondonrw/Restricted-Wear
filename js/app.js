@@ -551,6 +551,7 @@ RW.route = function () {
 
   RW.closeModal();
   RW.closeCart();
+  if (page !== "product") RW.soundStop(); /* product sound belongs to the product page only */
 
   var nav = page;
   if (page === "product") nav = "shop";
@@ -881,6 +882,107 @@ RW.renderCollection = function (stream) {
 };
 
 /* --------------------------------------------------------------------------
+   Product sound
+   A product may carry `audio: { src, volume, loop }` (see data.js). The track
+   plays while that product's page is open and fades out when the visitor
+   leaves. Browsers block sound until the visitor has interacted with the page,
+   so playback starts from the click on the product link where possible, and
+   otherwise from the first click, key press or tap on the page. SOUND on the
+   product page switches it off; the choice is remembered.
+   -------------------------------------------------------------------------- */
+RW.SOUND_KEY = "rw_sound_v1";                /* "off" when the visitor has muted product sound */
+RW.sound = { el: null, src: null, id: null, fade: null, arm: null };
+
+RW.soundEnabled = function () { return RW.store.get(RW.SOUND_KEY, "on") !== "off"; };
+
+RW.soundFade = function (el, target, ms, done) {
+  var s = RW.sound;
+  clearInterval(s.fade);
+  s.fade = null;
+  var from = el.volume;
+  if (from === target) { if (done) done(); return; }
+  var steps = Math.max(1, Math.round(ms / 50)), n = 0;
+  s.fade = setInterval(function () {
+    n++;
+    el.volume = Math.max(0, Math.min(1, from + (target - from) * (n / steps)));
+    if (n >= steps) {
+      clearInterval(s.fade);
+      s.fade = null;
+      if (done) done();
+    }
+  }, 50);
+};
+
+RW.soundDisarm = function () {
+  var s = RW.sound;
+  if (!s.arm) return;
+  ["click", "keydown", "touchend"].forEach(function (t) { document.removeEventListener(t, s.arm, true); });
+  s.arm = null;
+};
+
+/* Blocked by the browser: try again on the visitor's next interaction. */
+RW.soundArm = function (p) {
+  var s = RW.sound;
+  RW.soundDisarm();
+  s.arm = function () {
+    RW.soundDisarm();
+    if (s.id === p.id) RW.soundStart(p);
+  };
+  ["click", "keydown", "touchend"].forEach(function (t) { document.addEventListener(t, s.arm, true); });
+};
+
+RW.soundStart = function (p) {
+  var s = RW.sound;
+  var a = p && p.audio;
+  if (!a || !a.src || !RW.soundEnabled()) { RW.soundStop(); return; }
+  /* already playing (or finished) for this product, e.g. started from the link click */
+  if (s.id === p.id && s.el && (!s.el.paused || s.el.ended)) return;
+
+  clearInterval(s.fade);
+  s.fade = null;
+  RW.soundDisarm();
+
+  if (!s.el) { s.el = new Audio(); s.el.preload = "auto"; }
+  var el = s.el;
+  if (s.src !== a.src) { el.src = a.src; s.src = a.src; }
+  el.loop = !!a.loop;
+  try { el.currentTime = 0; } catch (e) {}
+  var target = typeof a.volume === "number" ? Math.max(0, Math.min(1, a.volume)) : 0.5;
+  el.volume = 0;
+  s.id = p.id;
+
+  var started = el.play();
+  var fadeIn = function () { if (s.id === p.id) RW.soundFade(el, target, 1400); };
+  if (started && started.then) {
+    started.then(fadeIn, function (err) {
+      if (s.id === p.id && err && err.name === "NotAllowedError") RW.soundArm(p);
+    });
+  } else {
+    fadeIn();
+  }
+};
+
+RW.soundStop = function () {
+  var s = RW.sound;
+  RW.soundDisarm();
+  s.id = null;
+  var el = s.el;
+  if (!el || el.paused) { clearInterval(s.fade); s.fade = null; return; }
+  RW.soundFade(el, 0, 700, function () { el.pause(); });
+};
+
+/* Start from the click itself: this is the gesture that lets every browser play. */
+RW.soundPrime = function (e) {
+  if (e.defaultPrevented || e.button > 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+  var a = e.target && e.target.closest ? e.target.closest('a[href^="#/product/"]') : null;
+  if (!a) return;
+  var id = a.getAttribute("href").replace("#/product/", "");
+  try { id = decodeURIComponent(id); } catch (err) {}
+  var p = RW.findProduct(RW.LEGACY_IDS[id] || id);
+  if (p && p.audio) RW.soundStart(p);
+};
+
+/* --------------------------------------------------------------------------
    Product details (full page — V1.1 detail markup and bindings, enlarged)
    -------------------------------------------------------------------------- */
 RW.productDetailHtml = function (p) {
@@ -960,6 +1062,7 @@ RW.productDetailHtml = function (p) {
           '<a href="#/' + dir.slug + '">' + RW.escapeHtml(p.stream) + '</a>' +
           '<span>' + RW.escapeHtml(p.category) + '</span>' +
           (restricted ? '<span class="restricted">RESTRICTED</span>' : (p.status === "LOW STOCK" ? "<span>LOW STOCK</span>" : "")) +
+          (p.audio ? '<button type="button" class="sound-toggle" id="pd-sound" aria-pressed="' + (RW.soundEnabled() ? "true" : "false") + '">' + (RW.soundEnabled() ? "SOUND ON" : "SOUND OFF") + '</button>' : "") +
         '</div>' +
         '<h1 class="display">' + RW.escapeHtml(p.name) + '</h1>' +
         '<div class="pd-price">' + RW.money(p.price) + '</div>' +
@@ -991,6 +1094,17 @@ RW.productDetailHtml = function (p) {
 RW.bindProductDetail = function (p) {
   var root = RW.qs(".product-page");
   if (!root) return;
+
+  var soundBtn = RW.qs("#pd-sound", root);
+  if (soundBtn) {
+    soundBtn.addEventListener("click", function () {
+      var on = !RW.soundEnabled();
+      RW.store.set(RW.SOUND_KEY, on ? "on" : "off");
+      soundBtn.textContent = on ? "SOUND ON" : "SOUND OFF";
+      soundBtn.setAttribute("aria-pressed", on ? "true" : "false");
+      if (on) RW.soundStart(p); else RW.soundStop();
+    });
+  }
 
   var main = RW.qs("#pd-main", root);
   RW.qsa(".pd-thumb", root).forEach(function (t) {
@@ -1088,6 +1202,7 @@ RW.renderProduct = function (id) {
   if (!app) return;
   var p = RW.findProduct(RW.LEGACY_IDS[id] || id);
   if (!p) {
+    RW.soundStop();
     app.innerHTML =
       '<div class="page"><div class="wrap"><div class="page-head">' +
         '<div class="mono kicker">SHOP</div><h1 class="display">NOT FOUND</h1>' +
@@ -1099,6 +1214,7 @@ RW.renderProduct = function (id) {
   RW.state.pd = { id: p.id, size: null, qty: 1, thumb: 0, variant: RW.variantsOf(p)[0].key };
   app.innerHTML = '<div class="page product-page"><div class="wrap">' + RW.productDetailHtml(p) + '</div></div>';
   RW.bindProductDetail(p);
+  RW.soundStart(p); /* stops any other product's track; plays this one if it has audio */
 };
 
 /* --------------------------------------------------------------------------
@@ -1694,6 +1810,7 @@ RW.bindGlobal = function () {
   });
 
   window.addEventListener("hashchange", RW.route);
+  document.addEventListener("click", RW.soundPrime, true);
 
   /* Keep the bag / Red Card state in step with other tabs. */
   window.addEventListener("storage", function (e) {
