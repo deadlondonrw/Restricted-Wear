@@ -93,6 +93,26 @@ RW.PRODUCTS = [
     audio: { src: "audio/paris-hilton.mp3", volume: 0.5 }
   },
   {
+    id: "posing-tonight",
+    name: "posing tonight",
+    stream: "MAINSTREAM",
+    gender: "ALL",
+    category: "T-SHIRTS",
+    sub: null,
+    price: 299.99,
+    status: "AVAILABLE",
+    featured: true,
+    desc: "Printed on the front and the back.",
+    sizes: { XS: true, S: true, M: true, L: true, XL: true },
+    specs: {},
+    variants: [
+      { key: "white", label: "WHITE", images: ["img/products/posing-tonight/white-front.png", "img/products/posing-tonight/white-back.png"] }
+    ],
+    imageLabels: ["FRONT", "BACK"],
+    /* Plays while this product's page is open. volume: 0 to 1 (0.5 = medium). */
+    audio: { src: "audio/posing-tonight.mp3", volume: 0.5 }
+  },
+  {
     id: "restricted-wear-erd",
     name: "restricted wear erd",           /* Frame 46 */
     stream: "MAINSTREAM",
