@@ -1,8 +1,9 @@
 /* ==========================================================================
    RESTRICTED WEAR — application (Version 1.2)
-   Frontend prototype. Accounts, the Red Card and checkout run entirely in the
-   browser (localStorage) for demonstration. This is NOT secure
-   authentication and no payment is ever processed.
+   Accounts, Red Cards and order history are stored on the server
+   (Cloudflare Pages Functions + KV, see functions/api/) when it is available,
+   and in this browser otherwise. Checkout is a visual prototype: no payment
+   is ever processed and no card data is stored.
    ========================================================================== */
 var RW = window.RW || {};
 
@@ -127,7 +128,8 @@ RW.randomUnit = function () {
 /* --------------------------------------------------------------------------
    Red Card identifier — exactly 94 digits, no separators or prefixes.
    [4-digit controlled prefix, or rarely a random one] + [90 random digits]
-   Uniqueness is enforced against every identifier issued in this browser.
+   Local mode: uniqueness is enforced against every identifier issued in this
+   browser. Server mode generates identifiers in functions/api/ instead.
    -------------------------------------------------------------------------- */
 RW.isValidRedCardId = function (id) {
   return typeof id === "string" && id.length === RW.REDCARD.LENGTH && /^[0-9]+$/.test(id);
@@ -159,10 +161,27 @@ RW.generateRedCardId = function () {
 };
 
 /* --------------------------------------------------------------------------
-   Accounts (demonstration only — stored in this browser)
-   Passwords are hashed with a non-cryptographic hash purely so they are not
-   kept as plain text. This is not a security measure.
+   Accounts
+
+   Two storage modes, chosen automatically at start-up:
+   • server — the site is running on Cloudflare Pages with the RW_DB KV
+     namespace bound (see functions/api/[[path]].js). Accounts, Red Cards and
+     orders are stored on the server, so they are the same in every browser
+     and on every device.
+   • local  — no API is available (opened as a file, or KV not bound yet).
+     The V1.2 in-browser prototype is used: everything stays in this browser.
+
+   In both modes a Red Card is issued once per account and kept permanently:
+   its identifier and issue date never change. Revoking only switches the
+   status; reactivating restores the same document.
    -------------------------------------------------------------------------- */
+RW.API_BASE = "/api/";
+RW.TOKEN_KEY = "rw_token_v1";
+RW.backend = { mode: "local", user: null };
+
+/* --- local (in-browser) prototype storage ------------------------------- */
+/* Passwords are hashed with a non-cryptographic hash purely so they are not
+   kept as plain text. This is not a security measure. */
 RW.demoHash = function (str) {
   var h1 = 0xdeadbeef, h2 = 0x41c6ce57;
   for (var i = 0, ch; i < str.length; i++) {
@@ -186,6 +205,7 @@ RW.accounts = function () {
 RW.saveAccounts = function (map) { RW.store.set(RW.ACCOUNTS_KEY, map); };
 
 RW.currentUser = function () {
+  if (RW.backend.mode === "server") return RW.backend.user;
   var email = RW.store.get(RW.SESSION_KEY, null);
   if (!email) return null;
   return RW.accounts()[email] || null;
@@ -197,34 +217,200 @@ RW.saveUser = function (user) {
   RW.saveAccounts(map);
 };
 
-RW.createAccount = function (name, email, password) {
+/* A Red Card made earlier in this browser, for the same email and password.
+   It is carried over to the server unchanged (same identifier, same date). */
+RW.legacyRedCardFor = function (email, password) {
   email = RW.normEmail(email);
-  var map = RW.accounts();
-  if (map[email]) return { error: "AN ACCOUNT WITH THIS EMAIL ALREADY EXISTS" };
-  var user = {
-    name: String(name || "").trim(),
-    email: email,
-    pass: RW.demoHash(email + "::" + password),
-    created: new Date().toISOString(),
-    profile: { phone: "", country: "", city: "", address: "", postal: "" },
-    redCard: null,
-    orders: []
-  };
-  map[email] = user;
-  RW.saveAccounts(map);
-  RW.store.set(RW.SESSION_KEY, email);
-  return { user: user };
+  var u = RW.accounts()[email];
+  if (!u || u.pass !== RW.demoHash(email + "::" + password)) return null;
+  if (!u.redCard || !RW.isValidRedCardId(u.redCard.id)) return null;
+  return { id: u.redCard.id, issued: u.redCard.issued, status: u.redCard.status };
 };
 
-RW.signIn = function (email, password) {
-  email = RW.normEmail(email);
-  var user = RW.accounts()[email];
-  if (!user || user.pass !== RW.demoHash(email + "::" + password)) return { error: "EMAIL OR PASSWORD IS INCORRECT" };
-  RW.store.set(RW.SESSION_KEY, email);
-  return { user: user };
+RW.local = {
+  createAccount: function (name, email, password) {
+    email = RW.normEmail(email);
+    var map = RW.accounts();
+    if (map[email]) return { error: "AN ACCOUNT WITH THIS EMAIL ALREADY EXISTS" };
+    var user = {
+      name: String(name || "").trim(),
+      email: email,
+      pass: RW.demoHash(email + "::" + password),
+      created: new Date().toISOString(),
+      profile: { phone: "", country: "", city: "", address: "", postal: "" },
+      redCard: null,
+      orders: []
+    };
+    map[email] = user;
+    RW.saveAccounts(map);
+    RW.store.set(RW.SESSION_KEY, email);
+    return { user: user };
+  },
+  signIn: function (email, password) {
+    email = RW.normEmail(email);
+    var user = RW.accounts()[email];
+    if (!user || user.pass !== RW.demoHash(email + "::" + password)) return { error: "EMAIL OR PASSWORD IS INCORRECT" };
+    RW.store.set(RW.SESSION_KEY, email);
+    return { user: user };
+  },
+  signOut: function () { RW.store.remove(RW.SESSION_KEY); return {}; },
+  saveProfile: function (name, profile) {
+    var u = RW.currentUser();
+    if (!u) return { error: "SIGN IN TO CONTINUE" };
+    if (name !== undefined) u.name = name;
+    u.profile = u.profile || {};
+    Object.keys(profile || {}).forEach(function (k) { u.profile[k] = profile[k]; });
+    RW.saveUser(u);
+    return { user: u };
+  },
+  issueRedCard: function (name, country) {
+    var u = RW.currentUser();
+    if (!u) return { error: "SIGN IN TO CONTINUE" };
+    if (name) u.name = name;
+    if (country !== undefined) { u.profile = u.profile || {}; u.profile.country = country; }
+    if (u.redCard && RW.isValidRedCardId(u.redCard.id)) {
+      u.redCard.status = "ACTIVE";               /* same identifier, same issue date */
+    } else {
+      u.redCard = { id: RW.generateRedCardId(), holder: u.name, issued: new Date().toISOString(), status: "ACTIVE" };
+    }
+    RW.saveUser(u);
+    return { user: u };
+  },
+  revokeRedCard: function () {
+    var u = RW.currentUser();
+    if (!u) return { error: "SIGN IN TO CONTINUE" };
+    if (u.redCard) u.redCard.status = "REVOKED";  /* the document is kept */
+    RW.saveUser(u);
+    return { user: u };
+  },
+  placeOrder: function (items, profile) {
+    var u = RW.currentUser();
+    if (!u) return { error: "SIGN IN TO CONTINUE" };
+    if (profile) { u.profile = u.profile || {}; Object.keys(profile).forEach(function (k) { u.profile[k] = profile[k]; }); }
+    var order = {
+      ref: RW.randomDigits(10),
+      date: new Date().toISOString(),
+      total: items.reduce(function (s, i) { return s + i.price * i.qty; }, 0),
+      items: items
+    };
+    u.orders = u.orders || [];
+    u.orders.push(order);
+    RW.saveUser(u);
+    return { order: order, user: u };
+  }
 };
 
-RW.signOut = function () { RW.store.remove(RW.SESSION_KEY); };
+/* --- server storage ------------------------------------------------------ */
+RW.api = function (method, path, body, timeoutMs) {
+  var headers = { "Accept": "application/json" };
+  var token = RW.store.get(RW.TOKEN_KEY, null);
+  if (token) headers["Authorization"] = "Bearer " + token;
+  if (body !== undefined) headers["Content-Type"] = "application/json";
+
+  var ctrl = typeof AbortController === "function" ? new AbortController() : null;
+  var timer = ctrl ? setTimeout(function () { ctrl.abort(); }, timeoutMs || 12000) : null;
+
+  return fetch(RW.API_BASE + path, {
+    method: method,
+    headers: headers,
+    body: body !== undefined ? JSON.stringify(body) : undefined,
+    credentials: "same-origin",
+    cache: "no-store",
+    signal: ctrl ? ctrl.signal : undefined
+  }).then(function (res) {
+    return res.json().catch(function () { return {}; }).then(function (data) {
+      return { ok: res.ok, status: res.status, data: data || {} };
+    });
+  }).catch(function () {
+    return { ok: false, status: 0, data: { error: "CONNECTION FAILED. TRY AGAIN." } };
+  }).then(function (r) {
+    if (timer) clearTimeout(timer);
+    return r;
+  });
+};
+
+/* Turns an API answer into { user, ... } or { error }, and keeps the cached account in step. */
+RW.apiResult = function (r) {
+  if (!r.ok) {
+    if (r.status === 401 && RW.backend.user) { RW.backend.user = null; RW.store.remove(RW.TOKEN_KEY); }
+    return { error: (r.data && r.data.error) || "SOMETHING WENT WRONG. TRY AGAIN." };
+  }
+  if (r.data.token) RW.store.set(RW.TOKEN_KEY, r.data.token);
+  if (r.data.user) RW.backend.user = r.data.user;
+  return r.data;
+};
+
+/* Decides the storage mode and restores the signed-in account. */
+RW.backend.init = function () {
+  if (!window.fetch || window.location.protocol === "file:") { RW.backend.mode = "local"; return Promise.resolve(); }
+  return RW.api("GET", "health", undefined, 4000).then(function (r) {
+    RW.backend.mode = r.ok && r.data && r.data.storage ? "server" : "local";
+    if (RW.backend.mode !== "server") return;
+    RW.backend.user = null;
+    if (!RW.store.get(RW.TOKEN_KEY, null)) return;
+    return RW.api("GET", "me", undefined, 6000).then(function (me) {
+      if (me.ok) RW.backend.user = me.data.user;
+      else if (me.status === 401) RW.store.remove(RW.TOKEN_KEY);
+    });
+  });
+};
+
+/* Quietly re-reads the account (changes made on another device) and
+   re-renders the open account page if anything changed. */
+RW.backend.refresh = function () {
+  if (RW.backend.mode !== "server" || !RW.backend.user || RW.backend._refreshing) return;
+  RW.backend._refreshing = true;
+  var before = JSON.stringify(RW.backend.user);
+  RW.api("GET", "me", undefined, 6000).then(function (r) {
+    RW.backend._refreshing = false;
+    if (r.ok) RW.backend.user = r.data.user;
+    else if (r.status === 401) { RW.backend.user = null; RW.store.remove(RW.TOKEN_KEY); }
+    else return;
+    if (JSON.stringify(RW.backend.user) !== before && !RW.qs("#modal-overlay.open")) RW.refreshAccountViews();
+  });
+};
+
+/* --- the interface used by the pages (always returns a Promise) ---------- */
+RW.account = {
+  createAccount: function (name, email, password) {
+    if (RW.backend.mode !== "server") return Promise.resolve(RW.local.createAccount(name, email, password));
+    return RW.api("POST", "register", {
+      name: name, email: email, password: password,
+      legacyRedCard: RW.legacyRedCardFor(email, password)
+    }).then(RW.apiResult);
+  },
+  signIn: function (email, password) {
+    if (RW.backend.mode !== "server") return Promise.resolve(RW.local.signIn(email, password));
+    return RW.api("POST", "login", {
+      email: email, password: password,
+      legacyRedCard: RW.legacyRedCardFor(email, password)
+    }).then(RW.apiResult);
+  },
+  signOut: function () {
+    if (RW.backend.mode !== "server") return Promise.resolve(RW.local.signOut());
+    return RW.api("POST", "logout", {}).then(function () {
+      RW.store.remove(RW.TOKEN_KEY);
+      RW.backend.user = null;
+      return {};
+    });
+  },
+  saveProfile: function (name, profile) {
+    if (RW.backend.mode !== "server") return Promise.resolve(RW.local.saveProfile(name, profile));
+    return RW.api("PUT", "profile", { name: name, profile: profile }).then(RW.apiResult);
+  },
+  issueRedCard: function (name, country) {
+    if (RW.backend.mode !== "server") return Promise.resolve(RW.local.issueRedCard(name, country));
+    return RW.api("POST", "redcard", { name: name, country: country }).then(RW.apiResult);
+  },
+  revokeRedCard: function () {
+    if (RW.backend.mode !== "server") return Promise.resolve(RW.local.revokeRedCard());
+    return RW.api("DELETE", "redcard").then(RW.apiResult);
+  },
+  placeOrder: function (items, profile) {
+    if (RW.backend.mode !== "server") return Promise.resolve(RW.local.placeOrder(items, profile));
+    return RW.api("POST", "orders", { items: items, profile: profile || null }).then(RW.apiResult);
+  }
+};
 
 /* --------------------------------------------------------------------------
    Authorization
@@ -234,6 +420,13 @@ RW.signOut = function () { RW.store.remove(RW.SESSION_KEY); };
 RW.hasRedCard = function (user) {
   user = user || RW.currentUser();
   return !!(user && user.redCard && user.redCard.status === "ACTIVE" && RW.isValidRedCardId(user.redCard.id));
+};
+
+/* "ACTIVE" | "REVOKED" | "NOT ISSUED" */
+RW.redCardStatus = function (user) {
+  var rc = user && user.redCard;
+  if (!rc || !RW.isValidRedCardId(rc.id)) return "NOT ISSUED";
+  return rc.status === "ACTIVE" ? "ACTIVE" : "REVOKED";
 };
 
 /* Returns null when the items may be purchased, otherwise "ACCOUNT" or "REDCARD". */
@@ -264,20 +457,20 @@ RW.continueAfterAuth = function (fallback) {
   if (fallback) RW.go(fallback);
 };
 
-RW.issueRedCard = function (user) {
-  user.redCard = {
-    id: RW.generateRedCardId(),
-    holder: user.name,
-    issued: new Date().toISOString(),
-    status: "ACTIVE"
-  };
-  RW.saveUser(user);
-  return user.redCard;
+/* Re-renders whichever account-related page is open. */
+RW.refreshAccountViews = function () {
+  RW.renderCart();
+  if (RW.qs(".auth-page")) RW.renderAuthorization();
+  else if (RW.qs(".account-page")) RW.renderAccount();
 };
 
-RW.revokeRedCard = function (user) {
-  user.redCard = null; /* the identifier stays in the registry and is never reissued */
-  RW.saveUser(user);
+/* Disables a button while a request is running. */
+RW.busy = function (btn, label) {
+  if (!btn) return function () {};
+  var original = btn.textContent;
+  btn.disabled = true;
+  if (label) btn.textContent = label;
+  return function () { btn.disabled = false; btn.textContent = original; };
 };
 
 /* --------------------------------------------------------------------------
@@ -590,6 +783,7 @@ RW.route = function () {
   }
 
   RW.scrollAfterRoute(page);
+  if (page === "account" || page === "authorization" || page === "red-card") RW.backend.refresh();
 };
 
 /* --------------------------------------------------------------------------
@@ -1510,9 +1704,10 @@ RW.zoomClose = function () {
    Red Card document
    -------------------------------------------------------------------------- */
 RW.redCardHtml = function (user, small) {
-  var rc = user && user.redCard && RW.hasRedCard(user) ? user.redCard : null;
+  var status = RW.redCardStatus(user);
+  var rc = status !== "NOT ISSUED" ? user.redCard : null;   /* a revoked card keeps its identifier and date */
   return (
-    '<div class="rc-doc' + (rc ? "" : " unissued") + (small ? " small" : "") + '">' +
+    '<div class="rc-doc' + (status === "ACTIVE" ? "" : " unissued") + (small ? " small" : "") + '">' +
       '<div class="rc-top">' +
         '<span class="rc-title">RED CARD</span>' +
         '<img class="rc-mark" src="img/rw-mark.png" alt="">' +
@@ -1520,7 +1715,7 @@ RW.redCardHtml = function (user, small) {
       '<div class="rc-fields">' +
         '<div style="grid-column:1 / -1;"><div class="f-label">HOLDER</div><div class="f-value">' + (rc ? RW.escapeHtml(user.name) : "&mdash;") + '</div></div>' +
         '<div><div class="f-label">ISSUED</div><div class="f-value">' + (rc ? RW.formatDate(rc.issued) : "&mdash;") + '</div></div>' +
-        '<div><div class="f-label">STATUS</div><div class="f-value">' + (rc ? "ACTIVE" : "NOT ISSUED") + '</div></div>' +
+        '<div><div class="f-label">STATUS</div><div class="f-value">' + status + '</div></div>' +
       '</div>' +
       '<div class="rc-id">' +
         '<div class="f-label">IDENTIFIER</div>' +
@@ -1566,26 +1761,20 @@ RW.openAuthModal = function () {
     form.addEventListener("submit", function (e) {
       e.preventDefault();
       if (!form.checkValidity()) { form.reportValidity(); return; }
-      var submitBtn = RW.qs("#auth-submit-btn");
-      if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = "REVIEWING..."; }
+      var done = RW.busy(RW.qs("#auth-submit-btn"), "REVIEWING...");
 
       var name = RW.qs("#auth-name").value.trim();
       var country = RW.qs("#auth-country").value.trim();
+      var pause = new Promise(function (resolve) { setTimeout(resolve, 1300); });
 
-      setTimeout(function () {
-        var u = RW.currentUser();
-        if (!u) { RW.closeModal(); return; }
-        if (name) u.name = name;
-        u.profile = u.profile || {};
-        u.profile.country = country;
-        RW.issueRedCard(u);
+      Promise.all([RW.account.issueRedCard(name, country), pause]).then(function (out) {
+        var res = out[0];
+        if (res.error) { done(); RW.toast(res.error); return; }
         RW.closeModal();
         RW.toast("RED CARD ISSUED");
-        RW.renderCart();
-        if (RW.state.next) { RW.continueAfterAuth(); return; }
-        if (RW.qs(".auth-page")) RW.renderAuthorization();
-        else if (RW.qs(".account-page")) RW.renderAccount();
-      }, 1300);
+        if (RW.state.next) { RW.renderCart(); RW.continueAfterAuth(); return; }
+        RW.refreshAccountViews();
+      });
     });
   }
 };
@@ -1598,12 +1787,15 @@ RW.renderAuthorization = function () {
   if (!app) return;
   var user = RW.currentUser();
   var active = RW.hasRedCard(user);
+  var status = RW.redCardStatus(user);
 
   var actions;
   if (!user) {
     actions =
       '<a href="#/account" class="btn primary" id="auth-signin-btn">SIGN IN</a>' +
       '<a href="#/account" class="btn ghost" id="auth-create-btn">CREATE ACCOUNT</a>';
+  } else if (status === "REVOKED") {
+    actions = '<button type="button" class="btn primary" id="auth-reactivate-btn">REACTIVATE RED CARD</button>';
   } else if (!active) {
     actions = '<button type="button" class="btn primary" id="auth-apply-btn">APPLY FOR A RED CARD</button>';
   } else {
@@ -1621,11 +1813,11 @@ RW.renderAuthorization = function () {
         '</div>' +
         '<div class="auth-grid">' +
           '<div class="auth-copy">' +
-            '<p>The Red Card is a digital authorization document connected to your account. It carries a unique 94-digit identifier.</p>' +
+            '<p>The Red Card is a digital authorization document connected to your account. It carries a unique 94-digit identifier. The identifier and the date of issue are permanent.</p>' +
             '<p>Browsing is open to everyone. Purchasing requires an account. Pieces marked restricted require an active Red Card.</p>' +
             '<div class="auth-fields">' +
               '<div class="row"><span class="k">ACCOUNT</span><span class="v' + (user ? "" : " on") + '">' + (user ? "SIGNED IN" : "NOT SIGNED IN") + '</span></div>' +
-              '<div class="row"><span class="k">RED CARD</span><span class="v' + (active ? "" : " on") + '">' + (active ? "ACTIVE" : "NOT ISSUED") + '</span></div>' +
+              '<div class="row"><span class="k">RED CARD</span><span class="v' + (active ? "" : " on") + '">' + status + '</span></div>' +
               '<div class="row"><span class="k">RESTRICTED PURCHASE</span><span class="v' + (active ? "" : " on") + '">' + (active ? "PERMITTED" : "NOT PERMITTED") + '</span></div>' +
             '</div>' +
             '<div class="auth-actions">' + actions + '</div>' +
@@ -1647,15 +1839,31 @@ RW.renderAuthorization = function () {
   var contBtn = RW.qs("#auth-continue-btn");
   if (contBtn) contBtn.addEventListener("click", function () { RW.continueAfterAuth("shop"); });
 
+  var reactivateBtn = RW.qs("#auth-reactivate-btn");
+  if (reactivateBtn) {
+    reactivateBtn.addEventListener("click", function () {
+      var u = RW.currentUser();
+      if (!u) return;
+      var done = RW.busy(reactivateBtn, "REACTIVATING...");
+      RW.account.issueRedCard(u.name).then(function (res) {
+        if (res.error) { done(); RW.toast(res.error); return; }
+        RW.toast("RED CARD REACTIVATED");
+        if (RW.state.next) { RW.renderCart(); RW.continueAfterAuth(); return; }
+        RW.refreshAccountViews();
+      });
+    });
+  }
+
   var revokeBtn = RW.qs("#auth-revoke-btn");
   if (revokeBtn) {
     revokeBtn.addEventListener("click", function () {
-      var u = RW.currentUser();
-      if (!u) return;
-      RW.revokeRedCard(u);
-      RW.toast("RED CARD REVOKED");
-      RW.renderCart();
-      RW.renderAuthorization();
+      if (!RW.currentUser()) return;
+      var done = RW.busy(revokeBtn);
+      RW.account.revokeRedCard().then(function (res) {
+        if (res.error) { done(); RW.toast(res.error); return; }
+        RW.toast("RED CARD REVOKED");
+        RW.refreshAccountViews();
+      });
     });
   }
 };
@@ -1719,7 +1927,9 @@ RW.renderAccount = function () {
               '<div style="margin-top:20px;">' +
                 (RW.hasRedCard(user)
                   ? '<a class="text-link" href="#/authorization">VIEW RED CARD</a>'
-                  : '<button type="button" class="text-link" id="acc-apply">APPLY FOR A RED CARD</button>') +
+                  : RW.redCardStatus(user) === "REVOKED"
+                    ? '<a class="text-link" href="#/authorization">REACTIVATE RED CARD</a>'
+                    : '<button type="button" class="text-link" id="acc-apply">APPLY FOR A RED CARD</button>') +
               '</div>' +
             '</div>' +
             '<div class="block">' +
@@ -1743,21 +1953,21 @@ RW.renderAccount = function () {
   if (form) {
     form.addEventListener("submit", function (e) {
       e.preventDefault();
-      var u = RW.currentUser();
-      if (!u) return;
+      if (!RW.currentUser()) return;
       var name = RW.qs("#pf-name").value.trim();
       if (!name) { RW.toast("NAME IS REQUIRED"); return; }
-      u.name = name;
-      u.profile = {
+      var done = RW.busy(RW.qs('button[type="submit"]', form), "SAVING...");
+      RW.account.saveProfile(name, {
         phone: RW.qs("#pf-phone").value.trim(),
         country: RW.qs("#pf-country").value.trim(),
         city: RW.qs("#pf-city").value.trim(),
         address: RW.qs("#pf-address").value.trim(),
         postal: RW.qs("#pf-postal").value.trim()
-      };
-      RW.saveUser(u);
-      RW.toast("SAVED");
-      RW.renderAccount();
+      }).then(function (res) {
+        if (res.error) { done(); RW.toast(res.error); return; }
+        RW.toast("SAVED");
+        RW.renderAccount();
+      });
     });
   }
 
@@ -1768,10 +1978,12 @@ RW.renderAccount = function () {
   var out = RW.qs("#acc-signout");
   if (out) {
     out.addEventListener("click", function () {
-      RW.signOut();
-      RW.toast("SIGNED OUT");
-      RW.renderCart();
-      RW.renderAccount();
+      RW.busy(out);
+      RW.account.signOut().then(function () {
+        RW.toast("SIGNED OUT");
+        RW.renderCart();
+        RW.renderAccount();
+      });
     });
   }
 };
@@ -1807,7 +2019,9 @@ RW.renderAccountAuth = function () {
             '<button type="button" class="tab' + (tab === "create" ? " active" : "") + '" data-tab="create" role="tab">CREATE ACCOUNT</button>' +
           '</div>' +
           form +
-          '<p class="mono form-note">PROTOTYPE. ACCOUNTS ARE KEPT IN THIS BROWSER ONLY.<br>DO NOT USE A REAL PASSWORD.</p>' +
+          (RW.backend.mode === "server"
+            ? '<p class="mono form-note">YOUR ACCOUNT AND RED CARD ARE AVAILABLE ON ANY DEVICE.<br>DO NOT REUSE A PASSWORD FROM ANOTHER SERVICE.</p>'
+            : '<p class="mono form-note">PROTOTYPE. ACCOUNTS ARE KEPT IN THIS BROWSER ONLY.<br>DO NOT USE A REAL PASSWORD.</p>') +
         '</div>' +
       '</div>' +
     '</div>';
@@ -1830,9 +2044,11 @@ RW.renderAccountAuth = function () {
   if (si) {
     si.addEventListener("submit", function (e) {
       e.preventDefault();
-      var res = RW.signIn(RW.qs("#si-email").value, RW.qs("#si-pass").value);
-      if (res.error) { RW.toast(res.error); return; }
-      after("SIGNED IN");
+      var done = RW.busy(RW.qs('button[type="submit"]', si), "SIGNING IN...");
+      RW.account.signIn(RW.qs("#si-email").value, RW.qs("#si-pass").value).then(function (res) {
+        if (res.error) { done(); RW.toast(res.error); return; }
+        after("SIGNED IN");
+      });
     });
   }
 
@@ -1842,9 +2058,11 @@ RW.renderAccountAuth = function () {
       e.preventDefault();
       var pass = RW.qs("#ca-pass").value;
       if (pass.length < 8) { RW.toast("PASSWORD MUST BE AT LEAST 8 CHARACTERS"); return; }
-      var res = RW.createAccount(RW.qs("#ca-name").value, RW.qs("#ca-email").value, pass);
-      if (res.error) { RW.toast(res.error); return; }
-      after("ACCOUNT CREATED");
+      var done = RW.busy(RW.qs('button[type="submit"]', ca), "CREATING...");
+      RW.account.createAccount(RW.qs("#ca-name").value, RW.qs("#ca-email").value, pass).then(function (res) {
+        if (res.error) { done(); RW.toast(res.error); return; }
+        after("ACCOUNT CREATED");
+      });
     });
   }
 };
@@ -2001,49 +2219,48 @@ RW.renderCheckout = function () {
       if (b) { RW.redirectForAuthorization(b, "checkout"); return; }
       if (!RW.state.cart.length) { RW.go("shop"); return; }
 
-      var u = RW.currentUser();
+      var profile = null;
       if (RW.qs("#co-save") && RW.qs("#co-save").checked) {
-        u.profile = u.profile || {};
-        u.profile.country = RW.qs("#co-country").value.trim();
-        u.profile.city = RW.qs("#co-city").value.trim();
-        u.profile.address = RW.qs("#co-address").value.trim();
-        u.profile.postal = RW.qs("#co-postal").value.trim();
+        profile = {
+          country: RW.qs("#co-country").value.trim(),
+          city: RW.qs("#co-city").value.trim(),
+          address: RW.qs("#co-address").value.trim(),
+          postal: RW.qs("#co-postal").value.trim()
+        };
       }
 
       /* Only product lines and totals are recorded — never payment data. */
-      var order = {
-        ref: RW.randomDigits(10),
-        date: new Date().toISOString(),
-        total: RW.cartSubtotal(),
-        items: RW.state.cart.map(function (i) {
-          var p = RW.findProduct(i.id);
-          return { id: i.id, name: p ? p.name : i.id, size: i.size, qty: i.qty, price: p ? p.price : 0,
-                   colour: p ? (RW.variantOf(p, i.variant).label || "") : "" };
-        })
-      };
-      u.orders = u.orders || [];
-      u.orders.push(order);
-      RW.saveUser(u);
+      var items = RW.state.cart.map(function (i) {
+        var p = RW.findProduct(i.id);
+        return { id: i.id, name: p ? p.name : i.id, size: i.size, qty: i.qty, price: p ? p.price : 0,
+                 colour: p ? (RW.variantOf(p, i.variant).label || "") : "" };
+      });
 
-      RW.state.cart = [];
-      RW.saveCart();
-      RW.updateBagCount();
-      RW.renderCart();
+      var done = RW.busy(RW.qs("#place-order-btn"), "PLACING ORDER...");
+      RW.account.placeOrder(items, profile).then(function (res) {
+        if (res.error) { done(); RW.toast(res.error); return; }
+        var order = res.order;
 
-      RW.openModal(
-        '<h3>ORDER RECEIVED</h3>' +
-        '<p class="mono dim" style="text-align:center;line-height:1.8;margin:0;">REFERENCE ' + RW.escapeHtml(order.ref) + '</p>' +
-        '<p class="mono dim" style="text-align:center;line-height:1.8;margin:8px 0 0;">VISUAL PROTOTYPE &mdash; NO PAYMENT WAS PROCESSED.</p>' +
-        '<div style="text-align:center;margin-top:26px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">' +
-          '<button type="button" class="btn primary" id="order-confirm-close">RETURN TO SHOP</button>' +
-          '<button type="button" class="btn ghost" id="order-view-account">VIEW ORDERS</button>' +
-        '</div>'
-      );
+        RW.state.cart = [];
+        RW.saveCart();
+        RW.updateBagCount();
+        RW.renderCart();
 
-      var closeBtn = RW.qs("#order-confirm-close");
-      if (closeBtn) closeBtn.addEventListener("click", function () { RW.closeModal(); RW.go("shop"); });
-      var accBtn = RW.qs("#order-view-account");
-      if (accBtn) accBtn.addEventListener("click", function () { RW.closeModal(); RW.go("account"); });
+        RW.openModal(
+          '<h3>ORDER RECEIVED</h3>' +
+          '<p class="mono dim" style="text-align:center;line-height:1.8;margin:0;">REFERENCE ' + RW.escapeHtml(order.ref) + '</p>' +
+          '<p class="mono dim" style="text-align:center;line-height:1.8;margin:8px 0 0;">VISUAL PROTOTYPE &mdash; NO PAYMENT WAS PROCESSED.</p>' +
+          '<div style="text-align:center;margin-top:26px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;">' +
+            '<button type="button" class="btn primary" id="order-confirm-close">RETURN TO SHOP</button>' +
+            '<button type="button" class="btn ghost" id="order-view-account">VIEW ORDERS</button>' +
+          '</div>'
+        );
+
+        var closeBtn = RW.qs("#order-confirm-close");
+        if (closeBtn) closeBtn.addEventListener("click", function () { RW.closeModal(); RW.go("shop"); });
+        var accBtn = RW.qs("#order-view-account");
+        if (accBtn) accBtn.addEventListener("click", function () { RW.closeModal(); RW.go("account"); });
+      });
     });
   }
 };
@@ -2100,21 +2317,32 @@ RW.bindGlobal = function () {
 
   window.addEventListener("hashchange", RW.route);
   document.addEventListener("click", RW.soundPrime, true);
+  document.addEventListener("visibilitychange", function () {
+    if (document.visibilityState === "visible") RW.backend.refresh();
+  });
 
   /* Keep the bag / Red Card state in step with other tabs. */
   window.addEventListener("storage", function (e) {
     if (e.key === RW.CART_KEY) { RW.loadCart(); RW.updateBagCount(); RW.renderCart(); }
+    if (e.key === RW.TOKEN_KEY || e.key === RW.SESSION_KEY || e.key === RW.ACCOUNTS_KEY) {
+      RW.backend.init().then(RW.refreshAccountViews);
+    }
   });
 };
 
 /* --------------------------------------------------------------------------
    Loader (V1.1 motion: logo, 1px progress line, fade out)
    -------------------------------------------------------------------------- */
-RW.runLoader = function () {
+/* The loader stays until the account has been restored (normally well
+   within its own 1.6 s). */
+RW.runLoader = function (ready) {
   var barEl = RW.qs("#loader-progress");
   var loaderEl = RW.qs("#loader");
+  var minimum = new Promise(function (resolve) { setTimeout(resolve, 1600); });
   setTimeout(function () { if (barEl) barEl.style.width = "100%"; }, 60);
-  setTimeout(function () { if (loaderEl) loaderEl.classList.add("hide"); }, 1600);
+  Promise.all([minimum, ready || Promise.resolve()]).then(function () {
+    if (loaderEl) loaderEl.classList.add("hide");
+  });
 };
 
 /* --------------------------------------------------------------------------
@@ -2127,8 +2355,11 @@ RW.init = function () {
   RW.updateBagCount();
   RW.renderCart();
   RW.bindGlobal();
-  RW.route();
-  RW.runLoader();
+  var ready = RW.backend.init().catch(function () { RW.backend.mode = "local"; }).then(function () {
+    RW.renderCart();
+    RW.route();
+  });
+  RW.runLoader(ready);
 };
 
 if (document.readyState === "loading") {
