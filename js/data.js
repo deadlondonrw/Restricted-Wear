@@ -54,7 +54,91 @@ RW.DIRECTIONS = {
    zoom:     optional, per variant: [front, back] larger files for the zoom viewer.
              Without it the viewer uses `images`.
    -------------------------------------------------------------------------- */
+/* Jeans are sized by waist (inches). */
+var JEANS_SIZES = { "28": true, "30": true, "32": true, "34": true, "36": true };
+
 RW.PRODUCTS = [
+  /* November 2026 — jeans */
+  {
+    id: "restricted-wear-stripe-jeans",
+    name: "restricted wear stripe jeans",
+    stream: "MAINSTREAM",
+    gender: "ALL",
+    category: "JEANS",
+    sub: "LOOSE",
+    price: 649.99,
+    status: "AVAILABLE",
+    featured: false,
+    desc: "Wide-leg denim. Printed across the front. Three stripes down each leg and a script R on the back pocket.",
+    sizes: JEANS_SIZES,
+    specs: {},
+    variants: [
+      { key: "black", label: "BLACK", images: ["img/products/restricted-wear-stripe-jeans/black-front.png", "img/products/restricted-wear-stripe-jeans/black-back.png"],
+        zoom: ["img/products/restricted-wear-stripe-jeans/black-front-zoom.webp", "img/products/restricted-wear-stripe-jeans/black-back-zoom.webp"] },
+      { key: "white", label: "WHITE", images: ["img/products/restricted-wear-stripe-jeans/white-front.png", "img/products/restricted-wear-stripe-jeans/white-back.png"],
+        zoom: ["img/products/restricted-wear-stripe-jeans/white-front-zoom.webp", "img/products/restricted-wear-stripe-jeans/white-back-zoom.webp"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
+  },
+  {
+    id: "say-so-jeans",
+    name: "say so jeans",
+    stream: "MAINSTREAM",
+    gender: "ALL",
+    category: "JEANS",
+    sub: "LOOSE",
+    price: 599.99,
+    status: "AVAILABLE",
+    featured: false,
+    desc: "Wide-leg denim. Printed on the front, with a vertical line along the fly. Signed on the back pocket.",
+    sizes: JEANS_SIZES,
+    specs: {},
+    variants: [
+      { key: "black", label: "BLACK", images: ["img/products/say-so-jeans/black-front.png", "img/products/say-so-jeans/black-back.png"],
+        zoom: ["img/products/say-so-jeans/black-front-zoom.webp", "img/products/say-so-jeans/black-back-zoom.webp"] },
+      { key: "white", label: "WHITE", images: ["img/products/say-so-jeans/white-front.png", "img/products/say-so-jeans/white-back.png"],
+        zoom: ["img/products/say-so-jeans/white-front-zoom.webp", "img/products/say-so-jeans/white-back-zoom.webp"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
+  },
+  {
+    id: "terrible-lifestyle-jeans",
+    name: "terrible lifestyle jeans",
+    stream: "MAINSTREAM",
+    gender: "ALL",
+    category: "JEANS",
+    sub: "BAGGY",
+    price: 549.99,
+    status: "AVAILABLE",
+    featured: false,
+    desc: "Washed black denim, baggy fit. Printed down both legs on the front, plain on the back.",
+    sizes: JEANS_SIZES,
+    specs: {},
+    variants: [
+      { key: "black", label: "BLACK", images: ["img/products/terrible-lifestyle-jeans/black-front.png", "img/products/terrible-lifestyle-jeans/black-back.png"],
+        zoom: ["img/products/terrible-lifestyle-jeans/black-front-zoom.webp", "img/products/terrible-lifestyle-jeans/black-back-zoom.webp"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
+  },
+  {
+    id: "notvetements-jeans",
+    name: "notvetements jeans",
+    stream: "MAINSTREAM",
+    gender: "ALL",
+    category: "JEANS",
+    sub: "BAGGY",
+    price: 549.99,
+    status: "AVAILABLE",
+    featured: false,
+    desc: "Washed black denim, baggy fit. Printed on the front, plain on the back.",
+    sizes: JEANS_SIZES,
+    specs: {},
+    variants: [
+      { key: "black", label: "BLACK", images: ["img/products/notvetements-jeans/black-front.png", "img/products/notvetements-jeans/black-back.png"],
+        zoom: ["img/products/notvetements-jeans/black-front-zoom.webp", "img/products/notvetements-jeans/black-back-zoom.webp"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
+  },
   /* November 2026 — newest pieces first */
   {
     id: "eurounion-tee",
