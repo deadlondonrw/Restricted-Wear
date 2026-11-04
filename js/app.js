@@ -1290,12 +1290,15 @@ RW.productDetailHtml = function (p) {
 
 /* --------------------------------------------------------------------------
    Quantity limits on the product page.
-   Max 99. Reaching 67 the first time: a full-screen "67" blinks for 2 s,
+   Max 99. Holding the quantity at 67 for 3 s (any change cancels the wait):
+   a full-screen "67" blinks for 2 s,
    then "Are you stupid?" fades out over 2 s and the quantity returns to 1.
    It happens once per page load: a reload makes it available again.
    -------------------------------------------------------------------------- */
 RW.QTY_MAX = 99;
 RW.qty67Seen = false;
+RW.qty67Timer = null;
+RW.QTY67_HOLD_MS = 3000;
 
 RW.qty67 = function (done) {
   var el = document.createElement("div");
@@ -1376,6 +1379,18 @@ RW.bindProductDetail = function (p) {
     RW.state.pd.qty = n;
     if (qtyVal) qtyVal.textContent = n;
     if (qtyLimit && n < RW.QTY_MAX) qtyLimit.textContent = "";
+    /* any change restarts the 67 wait; it only fires if 67 is held for 3 s */
+    clearTimeout(RW.qty67Timer);
+    RW.qty67Timer = null;
+    if (n === 67 && !RW.qty67Seen) {
+      RW.qty67Timer = setTimeout(function () {
+        RW.qty67Timer = null;
+        /* still on this product page, still at 67 */
+        if (!document.body.contains(qtyVal) || RW.state.pd.qty !== 67 || RW.qty67Seen) return;
+        RW.qty67Seen = true;
+        RW.qty67(function () { setQty(1); });
+      }, RW.QTY67_HOLD_MS);
+    }
   };
   if (minusBtn) {
     minusBtn.addEventListener("click", function () {
@@ -1389,10 +1404,6 @@ RW.bindProductDetail = function (p) {
         return;
       }
       setQty(RW.state.pd.qty + 1);
-      if (RW.state.pd.qty === 67 && !RW.qty67Seen) {
-        RW.qty67Seen = true;
-        RW.qty67(function () { setQty(1); });
-      }
     });
   }
 
