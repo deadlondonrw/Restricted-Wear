@@ -313,6 +313,14 @@ ul { margin: 0; padding: 0; list-style: none; }
 .pd-main-media { position: absolute; inset: 0; }
 .pd-view-label { position: absolute; top: 16px; left: 16px; font-weight: 500; font-size: 12px; letter-spacing: 0.11em; text-transform: uppercase; color: #5e5e5c; }
 .pd-thumb-label { position: absolute; left: 0; right: 0; bottom: 8px; text-align: center; font-weight: 500; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #5e5e5c; }
+/* Zoom — hover magnification on the main image (mouse only) */
+.pd-gallery-main.zoomable { cursor: zoom-in; }
+.pd-gallery-main.zoomable .ph img.ph-photo { transition: transform .5s cubic-bezier(0.16, 1, 0.3, 1); }
+.pd-gallery-main.is-magnified .ph img.ph-photo { transform: scale(2); }
+.pd-zoom-btn { position: absolute; top: 16px; right: 16px; background: none; border: none; padding: 0; font-weight: 500; font-size: 12px; letter-spacing: 0.11em; text-transform: uppercase; color: #5e5e5c; transition: color .18s ease, opacity .3s ease; cursor: zoom-in; }
+.pd-zoom-btn:hover { color: #000000; }
+.pd-gallery-main.is-magnified .pd-zoom-btn, .pd-gallery-main.is-magnified .pd-view-label { opacity: 0; }
+.pd-view-label { transition: opacity .3s ease; }
 .pd-thumbs { display: flex; gap: 10px; margin-top: 10px; }
 .pd-thumbs .pd-thumb { flex: 0 1 calc((100% - 20px) / 3); }
 .pd-thumb { position: relative; flex: 1; aspect-ratio: 1; overflow: hidden; border: 1px solid transparent; background: none; padding: 0; cursor: pointer; transition: border-color .18s ease; }
@@ -471,6 +479,35 @@ ul { margin: 0; padding: 0; list-style: none; }
 .modal-box { background: var(--bg); border: 1px solid var(--line); padding: 36px; max-width: 480px; width: 100%; margin: auto; }
 .modal-box h3 { font-size: 22px; margin: 0 0 12px; text-align: center; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
 .modal-close-row { display: flex; justify-content: flex-end; margin-bottom: 10px; }
+
+/* ==========================================================================
+   Zoom viewer — always on the photo background, like the product images
+   ========================================================================== */
+html.zv-lock, html.zv-lock body { overflow: hidden; }
+.zoom-viewer { position: fixed; inset: 0; z-index: 700; background: var(--photo-bg); color: #000000; display: flex; flex-direction: column; opacity: 0; visibility: hidden; transition: opacity .3s ease, visibility .3s ease; }
+.zoom-viewer.open { opacity: 1; visibility: visible; }
+.zv-bar { flex-shrink: 0; height: var(--nav-h); padding: 0 var(--gutter); display: flex; justify-content: space-between; align-items: center; gap: 18px; }
+.zv-title { font-weight: 500; font-size: 12.5px; letter-spacing: 0.1em; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.zv-btn { background: none; border: none; padding: 4px 0; color: #5e5e5c; font-weight: 500; font-size: 12.5px; letter-spacing: 0.11em; text-transform: uppercase; transition: color .18s ease, opacity .18s ease; }
+.zv-btn:hover { color: #000000; }
+.zv-btn:disabled { opacity: 0.3; cursor: default; }
+.zv-btn:disabled:hover { color: #5e5e5c; }
+.zv-btn:focus-visible { outline-color: #000000; }
+.zv-step { font-size: 17px; width: 26px; line-height: 1; }
+.zv-foot { display: grid; grid-template-columns: 1fr auto 1fr; }
+.zv-nav { justify-self: start; display: flex; align-items: center; gap: 18px; }
+.zv-levels { justify-self: end; display: flex; align-items: center; gap: 10px; }
+.zv-count, .zv-hint { font-weight: 500; font-size: 12px; letter-spacing: 0.1em; text-transform: uppercase; color: #8d8d8a; font-variant-numeric: tabular-nums; }
+.zv-level { min-width: 44px; text-align: center; }
+.zv-stage { position: relative; flex: 1; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; cursor: zoom-in; }
+.zv-stage.is-zoomed { cursor: grab; }
+.zv-stage.is-dragging { cursor: grabbing; }
+.zv-img { position: absolute; max-width: none; transform-origin: 50% 50%; transition: transform .45s cubic-bezier(0.16, 1, 0.3, 1), opacity .3s ease; will-change: transform; -webkit-user-drag: none; }
+.zv-img.loading { opacity: 0; }
+@media (max-width: 720px) {
+  .zv-hint { display: none; }
+  .zv-foot { grid-template-columns: 1fr auto; }
+}
 
 #toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%) translateY(20px); background: var(--fg); color: var(--bg); font-weight: 500; font-size: 13px; letter-spacing: 0.1em; padding: 13px 22px; z-index: 600; opacity: 0; transition: opacity .25s ease, transform .25s ease; pointer-events: none; text-transform: uppercase; max-width: calc(100vw - 32px); text-align: center; }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }

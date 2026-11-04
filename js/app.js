@@ -551,6 +551,7 @@ RW.route = function () {
 
   RW.closeModal();
   RW.closeCart();
+  RW.zoomClose();
   if (page !== "product") RW.soundStop(); /* product sound belongs to the product page only */
 
   var nav = page;
@@ -1053,8 +1054,9 @@ RW.productDetailHtml = function (p) {
     crumbs +
     '<div class="pd">' +
       '<div>' +
-        '<div class="pd-gallery-main"><div id="pd-main" class="pd-main-media">' + RW.mediaHtml(p, 0, null, vSel.key) + '</div>' +
-          (labels[0] ? '<span class="pd-view-label" id="pd-view-label">' + RW.escapeHtml(labels[0]) + '</span>' : "") + '</div>' +
+        '<div class="pd-gallery-main' + (imgCount ? " zoomable" : "") + '"><div id="pd-main" class="pd-main-media">' + RW.mediaHtml(p, 0, null, vSel.key) + '</div>' +
+          (labels[0] ? '<span class="pd-view-label" id="pd-view-label">' + RW.escapeHtml(labels[0]) + '</span>' : "") +
+          (imgCount ? '<button type="button" class="pd-zoom-btn" id="pd-zoom-btn" aria-label="Enlarge image">ZOOM</button>' : "") + '</div>' +
         '<div class="pd-thumbs">' + thumbs + '</div>' +
       '</div>' +
       '<div class="pd-info">' +
@@ -1214,7 +1216,294 @@ RW.renderProduct = function (id) {
   RW.state.pd = { id: p.id, size: null, qty: 1, thumb: 0, variant: RW.variantsOf(p)[0].key };
   app.innerHTML = '<div class="page product-page"><div class="wrap">' + RW.productDetailHtml(p) + '</div></div>';
   RW.bindProductDetail(p);
+  RW.bindGalleryZoom(p);
   RW.soundStart(p); /* stops any other product's track; plays this one if it has audio */
+};
+
+/* --------------------------------------------------------------------------
+   Image zoom
+   Product page: with a mouse, the main image is magnified under the cursor.
+   A click on the image (or ZOOM) opens the viewer: full screen on the photo
+   background. Click or tap zooms in at that point; wheel, pinch or +/-
+   adjust; drag moves the image. Arrow keys / swipe change the view.
+   A variant may carry `zoom: [front, back]` — larger files used only in the
+   viewer. Without it the regular product images are used.
+   -------------------------------------------------------------------------- */
+RW.ZOOM = { TAP: 2.5, MAX: 4, STEP: 1.6 };
+RW.zoom = { el: null, open: false, p: null, variant: "", index: 0, s: 1, x: 0, y: 0, w: 0, h: 0, sw: 0, sh: 0, pointers: {}, g: null, opener: null };
+
+RW.zoomFine = function () {
+  return !!(window.matchMedia && window.matchMedia("(hover: hover) and (pointer: fine)").matches);
+};
+
+RW.zoomSources = function (p, key) {
+  var v = RW.variantOf(p, key);
+  return (v.images || []).map(function (src, i) { return (v.zoom && v.zoom[i]) || src; });
+};
+
+/* Product page gallery: hover magnification + open the viewer. */
+RW.bindGalleryZoom = function (p) {
+  var gal = RW.qs(".product-page .pd-gallery-main.zoomable");
+  if (!gal) return;
+
+  if (RW.zoomFine()) {
+    var aim = function (e) {
+      var img = RW.qs("#pd-main img.ph-photo", gal);
+      if (!img) return;
+      var r = gal.getBoundingClientRect();
+      img.style.transformOrigin = ((e.clientX - r.left) / r.width * 100) + "% " + ((e.clientY - r.top) / r.height * 100) + "%";
+    };
+    gal.addEventListener("mouseenter", function (e) { aim(e); gal.classList.add("is-magnified"); });
+    gal.addEventListener("mousemove", aim);
+    gal.addEventListener("mouseleave", function () { gal.classList.remove("is-magnified"); });
+  }
+
+  gal.addEventListener("click", function () {
+    gal.classList.remove("is-magnified");
+    RW.zoomOpen(p, RW.state.pd.variant, RW.state.pd.thumb || 0);
+  });
+};
+
+RW.zoomEnsure = function () {
+  var z = RW.zoom;
+  if (z.el) return z.el;
+
+  var el = document.createElement("div");
+  el.id = "zoom-viewer";
+  el.className = "zoom-viewer";
+  el.setAttribute("role", "dialog");
+  el.setAttribute("aria-modal", "true");
+  el.setAttribute("aria-label", "Image viewer");
+  el.innerHTML =
+    '<div class="zv-bar">' +
+      '<span class="zv-title" id="zv-title"></span>' +
+      '<button type="button" class="zv-btn" id="zv-close">CLOSE</button>' +
+    '</div>' +
+    '<div class="zv-stage" id="zv-stage"><img class="zv-img" id="zv-img" alt="" draggable="false"></div>' +
+    '<div class="zv-bar zv-foot">' +
+      '<div class="zv-nav" id="zv-nav">' +
+        '<button type="button" class="zv-btn" id="zv-prev">PREVIOUS</button>' +
+        '<span class="zv-count" id="zv-count"></span>' +
+        '<button type="button" class="zv-btn" id="zv-next">NEXT</button>' +
+      '</div>' +
+      '<span class="zv-hint" id="zv-hint"></span>' +
+      '<div class="zv-levels">' +
+        '<button type="button" class="zv-btn zv-step" id="zv-out" aria-label="Zoom out">&minus;</button>' +
+        '<span class="zv-count zv-level" id="zv-level">100%</span>' +
+        '<button type="button" class="zv-btn zv-step" id="zv-in" aria-label="Zoom in">+</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(el);
+  z.el = el;
+
+  var stage = RW.qs("#zv-stage", el);
+  var local = function (e) {
+    var r = stage.getBoundingClientRect();
+    return { x: e.clientX - r.left, y: e.clientY - r.top };
+  };
+  var dist = function (a, b) { return Math.sqrt((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y)) || 1; };
+  var mid = function (a, b) { return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; };
+  var pts = function () { return Object.keys(z.pointers).map(function (k) { return z.pointers[k]; }); };
+
+  RW.qs("#zv-close", el).addEventListener("click", function () { RW.zoomClose(); });
+  RW.qs("#zv-prev", el).addEventListener("click", function () { RW.zoomShow(z.index - 1); });
+  RW.qs("#zv-next", el).addEventListener("click", function () { RW.zoomShow(z.index + 1); });
+  RW.qs("#zv-in", el).addEventListener("click", function () { RW.zoomAt(z.sw / 2, z.sh / 2, z.s * RW.ZOOM.STEP, true); });
+  RW.qs("#zv-out", el).addEventListener("click", function () { RW.zoomAt(z.sw / 2, z.sh / 2, z.s / RW.ZOOM.STEP, true); });
+
+  stage.addEventListener("wheel", function (e) {
+    e.preventDefault();
+    var q = local(e);
+    var k = e.deltaMode === 1 ? 0.05 : 0.0022;
+    RW.zoomAt(q.x, q.y, z.s * Math.exp(-e.deltaY * k), false);
+  }, { passive: false });
+
+  stage.addEventListener("pointerdown", function (e) {
+    if (e.pointerType === "mouse" && e.button !== 0) return;
+    try { stage.setPointerCapture(e.pointerId); } catch (err) {}
+    z.pointers[e.pointerId] = local(e);
+    var list = pts();
+    if (list.length === 1) {
+      z.g = { type: "pan", sx: list[0].x, sy: list[0].y, ox: z.x, oy: z.y, moved: false };
+    } else if (list.length === 2) {
+      z.g = { type: "pinch", d: dist(list[0], list[1]), m: mid(list[0], list[1]), moved: true };
+    }
+  });
+
+  stage.addEventListener("pointermove", function (e) {
+    if (!z.pointers[e.pointerId] || !z.g) return;
+    z.pointers[e.pointerId] = local(e);
+    var list = pts();
+    if (z.g.type === "pan" && list.length === 1) {
+      var dx = list[0].x - z.g.sx, dy = list[0].y - z.g.sy;
+      if (!z.g.moved && Math.abs(dx) + Math.abs(dy) > 6) z.g.moved = true;
+      if (z.g.moved && z.s > 1) {
+        stage.classList.add("is-dragging");
+        RW.zoomSet(z.s, z.g.ox + dx, z.g.oy + dy, false);
+      }
+    } else if (z.g.type === "pinch" && list.length >= 2) {
+      var d = dist(list[0], list[1]), m = mid(list[0], list[1]);
+      RW.zoomAt(m.x, m.y, z.s * d / z.g.d, false);
+      RW.zoomSet(z.s, z.x + (m.x - z.g.m.x), z.y + (m.y - z.g.m.y), false);
+      z.g.d = d;
+      z.g.m = m;
+    }
+  });
+
+  var end = function (e) {
+    if (!z.pointers[e.pointerId]) return;
+    var q = z.pointers[e.pointerId];
+    delete z.pointers[e.pointerId];
+    stage.classList.remove("is-dragging");
+    var g = z.g;
+    var list = pts();
+
+    if (list.length === 1) {
+      /* one finger left after a pinch: continue as a drag, never as a tap */
+      z.g = { type: "pan", sx: list[0].x, sy: list[0].y, ox: z.x, oy: z.y, moved: true };
+      return;
+    }
+    z.g = null;
+    if (!g || g.type !== "pan" || e.type !== "pointerup") return;
+
+    if (!g.moved) {
+      if (z.s > 1.01) RW.zoomSet(1, 0, 0, true);
+      else RW.zoomAt(q.x, q.y, RW.ZOOM.TAP, true);
+    } else if (z.s <= 1.01 && e.pointerType !== "mouse") {
+      /* swipe at fit scale changes the view */
+      var dx = q.x - g.sx, dy = q.y - g.sy;
+      if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.5) RW.zoomShow(z.index + (dx < 0 ? 1 : -1));
+    }
+  };
+  stage.addEventListener("pointerup", end);
+  stage.addEventListener("pointercancel", end);
+
+  document.addEventListener("keydown", function (e) {
+    if (!z.open) return;
+    if (e.key === "Escape") { e.stopPropagation(); RW.zoomClose(); }
+    else if (e.key === "ArrowRight") RW.zoomShow(z.index + 1);
+    else if (e.key === "ArrowLeft") RW.zoomShow(z.index - 1);
+    else if (e.key === "+" || e.key === "=") RW.zoomAt(z.sw / 2, z.sh / 2, z.s * RW.ZOOM.STEP, true);
+    else if (e.key === "-" || e.key === "_") RW.zoomAt(z.sw / 2, z.sh / 2, z.s / RW.ZOOM.STEP, true);
+    else if (e.key === "0") RW.zoomSet(1, 0, 0, true);
+  }, true);
+
+  window.addEventListener("resize", function () { if (z.open) RW.zoomLayout(); });
+  return el;
+};
+
+/* Fit the image to the stage at scale 1. */
+RW.zoomLayout = function () {
+  var z = RW.zoom;
+  var img = RW.qs("#zv-img"), stage = RW.qs("#zv-stage");
+  if (!img || !stage || !img.naturalWidth) return;
+  z.sw = stage.clientWidth;
+  z.sh = stage.clientHeight;
+  var fit = Math.min(z.sw / img.naturalWidth, z.sh / img.naturalHeight);
+  z.w = img.naturalWidth * fit;
+  z.h = img.naturalHeight * fit;
+  img.style.width = z.w + "px";
+  img.style.height = z.h + "px";
+  img.style.left = (z.sw - z.w) / 2 + "px";
+  img.style.top = (z.sh - z.h) / 2 + "px";
+  RW.zoomSet(1, 0, 0, false);
+};
+
+RW.zoomSet = function (s, x, y, animate) {
+  var z = RW.zoom;
+  var img = RW.qs("#zv-img"), stage = RW.qs("#zv-stage");
+  if (!img || !stage) return;
+  s = Math.max(1, Math.min(RW.ZOOM.MAX, s));
+  var mx = Math.max(0, (z.w * s - z.sw) / 2), my = Math.max(0, (z.h * s - z.sh) / 2);
+  z.s = s;
+  z.x = Math.max(-mx, Math.min(mx, x));
+  z.y = Math.max(-my, Math.min(my, y));
+  img.style.transition = animate ? "" : "opacity .3s ease";
+  img.style.transform = "translate3d(" + z.x + "px," + z.y + "px,0) scale(" + s + ")";
+
+  var zoomed = s > 1.01;
+  stage.classList.toggle("is-zoomed", zoomed);
+  var lv = RW.qs("#zv-level");
+  if (lv) lv.textContent = Math.round(s * 100) + "%";
+  var hint = RW.qs("#zv-hint");
+  if (hint) {
+    var fine = RW.zoomFine();
+    hint.textContent = zoomed
+      ? (fine ? "DRAG TO MOVE · CLICK TO RESET" : "DRAG TO MOVE · TAP TO RESET")
+      : (fine ? "CLICK OR SCROLL TO ZOOM" : "TAP OR PINCH TO ZOOM");
+  }
+  var out = RW.qs("#zv-out"), inn = RW.qs("#zv-in");
+  if (out) out.disabled = !zoomed;
+  if (inn) inn.disabled = s >= RW.ZOOM.MAX - 0.001;
+};
+
+/* Zoom to scale s while keeping the point (px, py) of the stage in place. */
+RW.zoomAt = function (px, py, s, animate) {
+  var z = RW.zoom;
+  s = Math.max(1, Math.min(RW.ZOOM.MAX, s));
+  var r = s / z.s;
+  var cx = z.sw / 2 + z.x, cy = z.sh / 2 + z.y;
+  RW.zoomSet(s, px - (px - cx) * r - z.sw / 2, py - (py - cy) * r - z.sh / 2, animate);
+};
+
+RW.zoomShow = function (index) {
+  var z = RW.zoom;
+  var list = RW.zoomSources(z.p, z.variant);
+  var n = list.length;
+  if (!n) return;
+  z.index = ((index % n) + n) % n;
+
+  var img = RW.qs("#zv-img");
+  var label = z.p.imageLabels && z.p.imageLabels[z.index];
+  var vLabel = RW.variantOf(z.p, z.variant).label;
+  RW.qs("#zv-title").textContent = z.p.name + (vLabel ? " · " + vLabel : "") + (label ? " · " + label : "");
+  RW.qs("#zv-count").textContent = (z.index + 1) + " / " + n;
+  RW.qs("#zv-nav").style.visibility = n > 1 ? "" : "hidden";
+  img.alt = z.p.name + (label ? " — " + label.toLowerCase() : "");
+
+  var src = list[z.index];
+  img.onload = function () { RW.zoomLayout(); img.classList.remove("loading"); };
+  if (img.getAttribute("src") === src && img.complete && img.naturalWidth) {
+    RW.zoomLayout();
+  } else {
+    img.classList.add("loading");
+    img.setAttribute("src", src);
+  }
+};
+
+RW.zoomOpen = function (p, variant, index) {
+  var z = RW.zoom;
+  if (!p || !RW.zoomSources(p, variant).length) return;
+  var el = RW.zoomEnsure();
+  z.p = p;
+  z.variant = variant || "";
+  z.open = true;
+  z.pointers = {};
+  z.g = null;
+  z.opener = document.activeElement;
+  document.documentElement.classList.add("zv-lock");
+  el.classList.add("open");
+  RW.zoomShow(index || 0);
+  var c = RW.qs("#zv-close", el);
+  if (c) c.focus({ preventScroll: true });
+};
+
+RW.zoomClose = function () {
+  var z = RW.zoom;
+  if (!z.open) return;
+  z.open = false;
+  z.pointers = {};
+  z.g = null;
+  if (z.el) z.el.classList.remove("open");
+  document.documentElement.classList.remove("zv-lock");
+
+  /* keep the product page on the view that was last looked at */
+  if (z.index !== (RW.state.pd.thumb || 0) && RW.state.pd.id === (z.p && z.p.id)) {
+    var t = RW.qs('.product-page .pd-thumb[data-thumb="' + z.index + '"]');
+    if (t) t.click();
+  }
+  if (z.opener && z.opener.focus && document.body.contains(z.opener)) z.opener.focus({ preventScroll: true });
+  z.opener = null;
 };
 
 /* --------------------------------------------------------------------------

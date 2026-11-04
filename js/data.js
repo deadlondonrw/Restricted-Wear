@@ -51,6 +51,8 @@ RW.DIRECTIONS = {
              RESTRICTED pieces require an active Red Card to purchase.
    featured: shown on the Home page.
    audio:    optional { src, volume, loop }. Plays while the product page is open.
+   zoom:     optional, per variant: [front, back] larger files for the zoom viewer.
+             Without it the viewer uses `images`.
    -------------------------------------------------------------------------- */
 RW.PRODUCTS = [
   /* November 2026 — newest pieces first */
