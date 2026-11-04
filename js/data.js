@@ -53,6 +53,151 @@ RW.DIRECTIONS = {
    audio:    optional { src, volume, loop }. Plays while the product page is open.
    -------------------------------------------------------------------------- */
 RW.PRODUCTS = [
+  /* November 2026 — newest pieces first */
+  {
+    id: "eurounion-tee",
+    name: "eurounion tee",
+    stream: "SECONDSTREAM",
+    gender: "ALL",
+    category: "T-SHIRTS",
+    sub: null,
+    price: 349.99,
+    status: "AVAILABLE",
+    featured: false,
+    desc: "Navy T-shirt. Printed on the front and the back.",
+    sizes: { XS: true, S: true, M: true, L: true, XL: true },
+    specs: {},
+    variants: [
+      { key: "navy", label: "NAVY", images: ["img/products/eurounion-tee/navy-front.png", "img/products/eurounion-tee/navy-back.png"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
+  },
+  {
+    id: "japan-tee",
+    name: "japan tee",
+    stream: "MAINSTREAM",
+    gender: "ALL",
+    category: "T-SHIRTS",
+    sub: null,
+    price: 299.99,
+    status: "AVAILABLE",
+    featured: false,
+    desc: "White T-shirt. Printed on the front and at the back neckline.",
+    sizes: { XS: true, S: true, M: true, L: true, XL: true },
+    specs: {},
+    variants: [
+      { key: "white", label: "WHITE", images: ["img/products/japan-tee/white-front.png", "img/products/japan-tee/white-back.png"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
+  },
+  {
+    id: "molly-tee",
+    name: "molly tee",
+    stream: "MAINSTREAM",
+    gender: "ALL",
+    category: "T-SHIRTS",
+    sub: null,
+    price: 299.99,
+    status: "AVAILABLE",
+    featured: false,
+    desc: "Black T-shirt. Printed on the front and the back.",
+    sizes: { XS: true, S: true, M: true, L: true, XL: true },
+    specs: {},
+    variants: [
+      { key: "black", label: "BLACK", images: ["img/products/molly-tee/black-front.png", "img/products/molly-tee/black-back.png"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
+  },
+  {
+    id: "headliner-tee",
+    name: "headliner tee",
+    stream: "MAINSTREAM",
+    gender: "ALL",
+    category: "T-SHIRTS",
+    sub: null,
+    price: 349.99,
+    status: "AVAILABLE",
+    featured: false,
+    desc: "Black T-shirt. Printed on the front and the back, with stripes running the full length.",
+    sizes: { XS: true, S: true, M: true, L: true, XL: true },
+    specs: {},
+    variants: [
+      { key: "black", label: "BLACK", images: ["img/products/headliner-tee/black-front.png", "img/products/headliner-tee/black-back.png"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
+  },
+  {
+    id: "striped-collar-tee",
+    name: "striped collar tee",
+    stream: "SECONDSTREAM",
+    gender: "ALL",
+    category: "T-SHIRTS",
+    sub: null,
+    price: 399.99,
+    status: "AVAILABLE",
+    featured: false,
+    desc: "Striped T-shirt with a white collar, contrast sleeves and white cuffs. Printed on the back.",
+    sizes: { XS: true, S: true, M: true, L: true, XL: true },
+    specs: {},
+    variants: [
+      { key: "stripe", label: "STRIPE", images: ["img/products/striped-collar-tee/stripe-front.png", "img/products/striped-collar-tee/stripe-back.png"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
+  },
+  {
+    id: "wtf-zip-hoodie",
+    name: "wtf zip hoodie",
+    stream: "MAINSTREAM",
+    gender: "ALL",
+    category: "ZIP HOODIES",
+    sub: null,
+    price: 549.99,
+    status: "AVAILABLE",
+    featured: false,
+    desc: "Black zip hoodie with a two-way zip. Printed on the back.",
+    sizes: { XS: true, S: true, M: true, L: true, XL: true },
+    specs: {},
+    variants: [
+      { key: "black", label: "BLACK", images: ["img/products/wtf-zip-hoodie/black-front.png", "img/products/wtf-zip-hoodie/black-back.png"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
+  },
+  {
+    id: "viperr-zip-hoodie",
+    name: "viperr zip hoodie",
+    stream: "MAINSTREAM",
+    gender: "ALL",
+    category: "ZIP HOODIES",
+    sub: null,
+    price: 549.99,
+    status: "AVAILABLE",
+    featured: false,
+    desc: "Black zip hoodie with a two-way zip. Printed on the back. RW & VIPERR.",
+    sizes: { XS: true, S: true, M: true, L: true, XL: true },
+    specs: {},
+    variants: [
+      { key: "black", label: "BLACK", images: ["img/products/viperr-zip-hoodie/black-front.png", "img/products/viperr-zip-hoodie/black-back.png"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
+  },
+  {
+    id: "queensidemotions-zip-hoodie",
+    name: "queensidemotions zip hoodie",
+    stream: "MAINSTREAM",
+    gender: "ALL",
+    category: "ZIP HOODIES",
+    sub: null,
+    price: 599.99,
+    status: "AVAILABLE",
+    featured: false,
+    desc: "Black zip hoodie with a two-way zip. Printed on the chest and the back.",
+    sizes: { XS: true, S: true, M: true, L: true, XL: true },
+    specs: {},
+    variants: [
+      { key: "black", label: "BLACK", images: ["img/products/queensidemotions-zip-hoodie/black-front.png", "img/products/queensidemotions-zip-hoodie/black-back.png"] }
+    ],
+    imageLabels: ["FRONT", "BACK"]
+  },
   {
     id: "posing-tonight",
     name: "posing tonight",
