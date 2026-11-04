@@ -1292,10 +1292,10 @@ RW.productDetailHtml = function (p) {
    Quantity limits on the product page.
    Max 99. Reaching 67 the first time: a full-screen "67" blinks for 2 s,
    then "Are you stupid?" fades out over 2 s and the quantity returns to 1.
-   It happens once per browser (remembered in localStorage).
+   It happens once per page load: a reload makes it available again.
    -------------------------------------------------------------------------- */
 RW.QTY_MAX = 99;
-RW.QTY67_KEY = "rw_qty67_seen_v1";
+RW.qty67Seen = false;
 
 RW.qty67 = function (done) {
   var el = document.createElement("div");
@@ -1389,8 +1389,8 @@ RW.bindProductDetail = function (p) {
         return;
       }
       setQty(RW.state.pd.qty + 1);
-      if (RW.state.pd.qty === 67 && !RW.store.get(RW.QTY67_KEY, false)) {
-        RW.store.set(RW.QTY67_KEY, true);
+      if (RW.state.pd.qty === 67 && !RW.qty67Seen) {
+        RW.qty67Seen = true;
         RW.qty67(function () { setQty(1); });
       }
     });
