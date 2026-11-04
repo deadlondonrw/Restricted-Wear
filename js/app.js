@@ -1275,6 +1275,7 @@ RW.productDetailHtml = function (p) {
             '<span id="pd-qty-value">1</span>' +
             '<button type="button" id="pd-qty-plus" aria-label="Increase quantity">+</button>' +
           '</div>' +
+          '<span class="qty-limit" id="pd-qty-limit" aria-live="polite"></span>' +
         '</div>' +
         '<div class="pd-add-row">' +
           '<button type="button" class="btn primary block" id="pd-buy-btn">PURCHASE</button>' +
@@ -1285,6 +1286,30 @@ RW.productDetailHtml = function (p) {
       '</div>' +
     '</div>'
   );
+};
+
+/* --------------------------------------------------------------------------
+   Quantity limits on the product page.
+   Max 99. Reaching 67 the first time: a full-screen "67" blinks for 2 s,
+   then "Are you stupid?" fades out over 2 s and the quantity returns to 1.
+   It happens once per browser (remembered in localStorage).
+   -------------------------------------------------------------------------- */
+RW.QTY_MAX = 99;
+RW.QTY67_KEY = "rw_qty67_seen_v1";
+
+RW.qty67 = function (done) {
+  var el = document.createElement("div");
+  el.className = "qty67";
+  el.setAttribute("aria-live", "assertive");
+  el.innerHTML = '<span class="qty67-num">67</span>';
+  document.body.appendChild(el);
+
+  setTimeout(function () {
+    el.innerHTML = '<span class="qty67-msg">Are you stupid?</span>';
+    el.classList.add("fading");
+    if (done) done();
+    setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 2000);
+  }, 2000);
 };
 
 RW.bindProductDetail = function (p) {
@@ -1344,20 +1369,30 @@ RW.bindProductDetail = function (p) {
   });
 
   var qtyVal = RW.qs("#pd-qty-value", root);
+  var qtyLimit = RW.qs("#pd-qty-limit", root);
   var minusBtn = RW.qs("#pd-qty-minus", root);
   var plusBtn = RW.qs("#pd-qty-plus", root);
+  var setQty = function (n) {
+    RW.state.pd.qty = n;
+    if (qtyVal) qtyVal.textContent = n;
+    if (qtyLimit && n < RW.QTY_MAX) qtyLimit.textContent = "";
+  };
   if (minusBtn) {
     minusBtn.addEventListener("click", function () {
-      if (RW.state.pd.qty > 1) {
-        RW.state.pd.qty -= 1;
-        if (qtyVal) qtyVal.textContent = RW.state.pd.qty;
-      }
+      if (RW.state.pd.qty > 1) setQty(RW.state.pd.qty - 1);
     });
   }
   if (plusBtn) {
     plusBtn.addEventListener("click", function () {
-      RW.state.pd.qty += 1;
-      if (qtyVal) qtyVal.textContent = RW.state.pd.qty;
+      if (RW.state.pd.qty >= RW.QTY_MAX) {
+        if (qtyLimit) qtyLimit.textContent = "fucking chill, you dont have so much money";
+        return;
+      }
+      setQty(RW.state.pd.qty + 1);
+      if (RW.state.pd.qty === 67 && !RW.store.get(RW.QTY67_KEY, false)) {
+        RW.store.set(RW.QTY67_KEY, true);
+        RW.qty67(function () { setQty(1); });
+      }
     });
   }
 

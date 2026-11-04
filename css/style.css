@@ -354,6 +354,16 @@ ul { margin: 0; padding: 0; list-style: none; }
 .qty-control { display: flex; align-items: center; border: 1px solid var(--line); }
 .qty-control button { background: none; border: none; color: var(--fg); width: 36px; height: 40px; font-size: 14px; }
 .qty-control span { width: 34px; text-align: center; font-size: 14px; font-variant-numeric: tabular-nums; }
+.qty-limit { font-weight: 500; font-size: 12.5px; letter-spacing: 0.04em; color: var(--accent); line-height: 1.3; }
+.qty-limit:empty { display: none; }
+
+/* Quantity 67 — full-screen overlay */
+.qty67 { position: fixed; inset: 0; z-index: 900; background: var(--bg); color: var(--fg); display: flex; align-items: center; justify-content: center; text-align: center; padding: var(--gutter); }
+.qty67-num { font-weight: 700; font-size: min(62vw, 78vh); line-height: 0.8; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; animation: qty67-blink 0.25s steps(1, end) 8; }
+.qty67-msg { font-weight: 700; font-size: clamp(36px, 8vw, 120px); line-height: 0.95; }
+.qty67.fading { animation: qty67-fade 2s ease forwards; }
+@keyframes qty67-blink { 0% { opacity: 1; } 50% { opacity: 0; } }
+@keyframes qty67-fade { from { opacity: 1; } to { opacity: 0; } }
 .pd-add-row { display: flex; flex-direction: column; gap: 12px; margin-bottom: 36px; }
 .pd-add-row .pd-hint { color: var(--dim); text-align: center; }
 .specs { border-top: 1px solid var(--line-soft); }
