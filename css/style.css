@@ -359,7 +359,7 @@ ul { margin: 0; padding: 0; list-style: none; }
 
 /* Quantity 67 — full-screen overlay */
 .qty67 { position: fixed; inset: 0; z-index: 900; background: var(--bg); color: var(--fg); display: flex; align-items: center; justify-content: center; text-align: center; padding: var(--gutter); }
-.qty67-num { font-weight: 700; font-size: min(62vw, 78vh); line-height: 0.8; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; animation: qty67-blink 0.25s steps(1, end) 8; }
+.qty67-num { font-weight: 700; font-size: min(62vw, 78vh); line-height: 0.8; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; animation: qty67-blink 0.1s steps(1, end) 20; }
 .qty67-msg { font-weight: 700; font-size: clamp(36px, 8vw, 120px); line-height: 0.95; }
 .qty67.fading { animation: qty67-fade 2s ease forwards; }
 @keyframes qty67-blink { 0% { opacity: 1; } 50% { opacity: 0; } }
