@@ -1,0 +1,107 @@
+name: DEADNOISE Windows x64 build
+
+# Builds the DEADNOISE VST3 with MSVC (JUCE's supported Windows compiler),
+# runs the DSP test-suite, Steinberg's VST3 validator and pluginval on a real
+# Windows machine, then commits the binary + logs back to the branch.
+
+on:
+  push:
+    branches: [ 'claude/**' ]
+    paths:
+      - 'DEADNOISE/src/**'
+      - 'DEADNOISE/tests/**'
+      - 'DEADNOISE/tools/**'
+      - 'DEADNOISE/CMakeLists.txt'
+      - '.github/workflows/deadnoise-windows.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: deadnoise-windows-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch JUCE 8.0.15
+        run: git clone --depth 1 --branch 8.0.15 https://github.com/juce-framework/JUCE.git "$RUNNER_TEMP/JUCE"
+
+      - name: Configure (MSVC, static runtime)
+        run: >
+          cmake -S DEADNOISE -B build -G "Visual Studio 17 2022" -A x64
+          -DDEADNOISE_JUCE_DIR="$RUNNER_TEMP/JUCE"
+          -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
+
+      - name: Build
+        run: cmake --build build --config Release --parallel 4
+
+      - name: DSP test-suite (native Windows)
+        run: |
+          set -o pipefail
+          mkdir -p ci-logs
+          build/Release/deadnoise_tests.exe | tee ci-logs/dsp-tests-windows.txt
+
+      - name: Build Steinberg VST3 validator
+        run: |
+          git clone --depth 1 --recursive --shallow-submodules https://github.com/steinbergmedia/vst3sdk.git "$RUNNER_TEMP/vst3sdk"
+          cmake -S "$RUNNER_TEMP/vst3sdk" -B "$RUNNER_TEMP/vst3sdk-build" -G "Visual Studio 17 2022" -A x64 \
+                -DSMTG_ENABLE_VST3_PLUGIN_EXAMPLES=OFF -DSMTG_ENABLE_VSTGUI_SUPPORT=OFF -DSMTG_CREATE_PLUGIN_LINK=OFF
+          cmake --build "$RUNNER_TEMP/vst3sdk-build" --config Release --target validator --parallel 4
+
+      - name: VST3 validator (extensive)
+        run: |
+          set -o pipefail
+          "$RUNNER_TEMP/vst3sdk-build/bin/Release/validator.exe" -e build/DEADNOISE_artefacts/Release/VST3/DEADNOISE.vst3 \
+            | tee ci-logs/vst3-validator-windows.txt
+
+      - name: pluginval (strictness 10)
+        run: |
+          set -o pipefail
+          curl -sSL -o pluginval.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip
+          7z x -y pluginval.zip > /dev/null
+          ./pluginval.exe --strictness-level 10 --validate-in-process --timeout-ms 900000 \
+            --output-dir ci-logs build/DEADNOISE_artefacts/Release/VST3/DEADNOISE.vst3 \
+            | tee ci-logs/pluginval-windows.txt
+
+      - name: Package
+        run: |
+          rm -rf DEADNOISE/bin && mkdir -p DEADNOISE/bin DEADNOISE/docs/ci
+          cp -r build/DEADNOISE_artefacts/Release/VST3/DEADNOISE.vst3 DEADNOISE/bin/
+          (cd DEADNOISE/bin && 7z a -tzip DEADNOISE-windows-x64.zip DEADNOISE.vst3 > /dev/null)
+          (cd DEADNOISE/bin && sha256sum DEADNOISE-windows-x64.zip DEADNOISE.vst3/Contents/x86_64-win/DEADNOISE.vst3 > SHA256SUMS.txt)
+          cp ci-logs/dsp-tests-windows.txt ci-logs/vst3-validator-windows.txt ci-logs/pluginval-windows.txt DEADNOISE/docs/ci/
+          {
+            echo "commit: $GITHUB_SHA"
+            echo "runner: $RUNNER_OS $ImageOS $ImageVersion"
+            echo "compiler: $(cmake --version | head -1), MSVC (Visual Studio 17 2022), /MT static runtime"
+            echo "built: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } > DEADNOISE/docs/ci/build-info.txt
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: DEADNOISE-windows-x64
+          path: |
+            DEADNOISE/bin
+            ci-logs
+
+      - name: Commit binary back to the branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A DEADNOISE/bin DEADNOISE/docs/ci
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "CI: Windows x64 MSVC build of DEADNOISE.vst3 (${GITHUB_SHA::7})"
+          for i in 1 2 3 4; do
+            git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            sleep $((i * 5))
+          done
+          exit 1
