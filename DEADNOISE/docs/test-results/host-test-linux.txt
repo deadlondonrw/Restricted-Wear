@@ -1,0 +1,16 @@
+[scan] /home/user/build/linux/DEADNOISE_artefacts/Release/VST3/DEADNOISE.vst3
+    name 'DEADNOISE'  vendor 'DEADNOISE'  category 'Fx|Restoration'  version 1.0.0  ins 0 outs 0  instrument 0
+[process]  44100 Hz  block  512  2 ch  latency 1024  transparency err 7.5e-09  hiss attenuation  -25.6 dB
+[process]  48000 Hz  block  256  2 ch  latency 1024  transparency err 7.5e-09  hiss attenuation  -25.6 dB
+[process]  48000 Hz  block  333  1 ch  latency 1024  transparency err 7.5e-09  hiss attenuation  -25.6 dB
+[process]  96000 Hz  block 1024  2 ch  latency 2048  transparency err 1.1e-08  hiss attenuation  -25.5 dB
+[process]  48000 Hz  block   64  2 ch  latency 1024  transparency err 7.5e-09  hiss attenuation  -25.6 dB
+[process]  44100 Hz  block 4096  1 ch  latency 1024  transparency err 7.5e-09  hiss attenuation  -25.6 dB
+[state] learned profile restored via IComponent state: attenuation  -31.9 dB (Natural 100 %)
+[state] reload into new instance: voice 0.73  mode 1  gate 1  profile present
+[state] original vs reloaded instance output difference 0.00e+00
+[editor] size 932 x 628
+[editor] opened and closed 12 times while processing audio
+
+47 checks, 0 failures
+HOST TEST PASSED
