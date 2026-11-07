@@ -1,0 +1,4 @@
+commit: b9b624a5d5c03dd8da84a4dd05db7f33a79f0000
+runner: Windows win22 20261101.353.1
+compiler: cmake version 3.31.6, MSVC (Visual Studio 17 2022), /MT static runtime
+built: 2026-11-07T02:12:57Z

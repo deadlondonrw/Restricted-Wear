@@ -1,0 +1,82 @@
+DEADNOISE DSP test suite
+========================
+
+[FFT correctness]
+    n=64     max |DFT err|/sqrt(n) = 2.19e-07   round trip = 3.58e-07
+    n=512    max |DFT err|/sqrt(n) = 2.94e-07   round trip = 5.96e-07
+    n=1024   max |DFT err|/sqrt(n) = 4.19e-07   round trip = 5.96e-07
+    n=2048   max |DFT err|/sqrt(n) = 4.59e-07   round trip = 5.96e-07
+
+[Transparency at 0 % reduction, latency, sample rates, channel layouts]
+     44100 Hz  1 ch  latency 1024 smp (23.22 ms)  max |out - delayed in| = 8.94e-08
+     44100 Hz  2 ch  latency 1024 smp (23.22 ms)  max |out - delayed in| = 8.94e-08
+     48000 Hz  1 ch  latency 1024 smp (21.33 ms)  max |out - delayed in| = 8.94e-08
+     48000 Hz  2 ch  latency 1024 smp (21.33 ms)  max |out - delayed in| = 8.94e-08
+     96000 Hz  1 ch  latency 2048 smp (21.33 ms)  max |out - delayed in| = 8.94e-08
+     96000 Hz  2 ch  latency 2048 smp (21.33 ms)  max |out - delayed in| = 8.94e-08
+    impulse peak offset with suppression active (samples)   1024.000 
+    impulse peak level preserved (dB)                        -0.572 
+
+[Silence, NaN / Inf input, extreme levels]
+    digital silence -> exact digital silence: yes
+    NaN/Inf burst: output finite = yes, still suppressing afterwards (-99.5 dB)
+    loud input: peak in (dBFS)                               -0.082 
+    loud input: peak out (dBFS)                              -0.105 
+
+[Host buffer-size independence (random block sizes 1..4096)]
+    max difference fixed 512 vs random blocks                 0.000 
+
+[Real-time safety: heap allocations inside process()]
+    operator new calls during process() (incl. learning)      0.000 
+
+[Learn Background: accuracy and speech rejection]
+    clean hiss: accepted frames (%)                          99.067 
+    clean hiss: worst band error vs reference (dB)            0.383 
+    speech in 37 % of window: accepted frames (%)            56.800 
+    speech in 37 % of window: worst band error (dB)           0.392 
+    continuous talking during learning -> rejected (correct)
+    muted input during learning -> 'no signal' (correct)
+    profile serialise/deserialise round trip ok, truncated data rejected
+
+[Noise suppression depth (stationary hiss, profile learned)]
+    HF hiss   Natural   50 %   attenuation  -16.0 dB  (target -16.0 dB)
+    HF hiss   Natural   80 %   attenuation  -25.5 dB  (target -25.6 dB)
+    HF hiss   Natural  100 %   attenuation  -31.9 dB  (target -32.0 dB)
+    HF hiss   Maximum   50 %   attenuation  -30.0 dB  (target -30.0 dB)
+    HF hiss   Maximum   80 %   attenuation  -48.0 dB  (target -48.0 dB)
+    HF hiss   Maximum  100 %   attenuation  -60.0 dB  (target -60.0 dB)
+    white     Natural   50 %   attenuation  -16.0 dB  (target -16.0 dB)
+    white     Natural   80 %   attenuation  -25.6 dB  (target -25.6 dB)
+    white     Natural  100 %   attenuation  -32.0 dB  (target -32.0 dB)
+    white     Maximum   50 %   attenuation  -30.0 dB  (target -30.0 dB)
+    white     Maximum   80 %   attenuation  -48.0 dB  (target -48.0 dB)
+    white     Maximum  100 %   attenuation  -60.0 dB  (target -60.0 dB)
+    adaptive tracking (no profile) attenuation (dB)         -25.151 dB
+    +12 dB input gain after learning: attenuation (dB)      -31.884 dB
+    hiss +6 dB after learning (3 s later) attenuation (dB)    -24.353 dB
+
+[Speech preservation (synthetic voiced speech + hiss, 20 dB SNR)]
+    Natural  speech level change  -0.00 dB   SDR in  20.0 dB -> out  34.3 dB
+    Maximum  speech level change  -0.00 dB   SDR in  20.0 dB -> out  34.3 dB
+
+[Stereo linking, monitor modes, gate]
+    identical L/R -> identical output: yes;  L-only input -> R stays silent: yes
+    'Original' = latency-aligned input (err 1.5e-08);  'Removed' = original - processed (err 1.4e-08)
+    gate: extra attenuation in pauses (dB)                  -29.996 dB
+    gate: level change during speech (dB)                    -0.001 dB
+    gate: max per-sample gain step                            0.005 
+
+[Profile reuse across sample rates / FFT sizes]
+    48 kHz profile used at 96 kHz: attenuation (dB)         -31.923 dB
+    re-prepare 44.1 -> 96 -> 48 kHz with profile: ok
+
+[Stress: random parameter automation every block (30 s, stereo)]
+    output finite: yes, peak 69.65 (input peak x gains bounded)
+
+[CPU cost]
+     44100 Hz stereo, 256-sample blocks: 1.86 % of one CPU core (real-time factor 0.0186)
+     48000 Hz stereo, 256-sample blocks: 2.05 % of one CPU core (real-time factor 0.0205)
+     96000 Hz stereo, 256-sample blocks: 4.00 % of one CPU core (real-time factor 0.0400)
+
+69 checks, 0 failures
+ALL TESTS PASSED
