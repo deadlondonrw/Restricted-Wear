@@ -117,6 +117,9 @@ public:
     // ---- metering / display (relaxed atomics; any thread)
     float getAverageReductionDb() const noexcept { return reductionDb.load (std::memory_order_relaxed); }
     float getSpeechActivity() const noexcept { return speechActivity.load (std::memory_order_relaxed); }
+    // Mean deviation (dB) of the current background from the learned profile.
+    // Several dB for a sustained period means the profile should be relearned.
+    float getProfileDriftDb() const noexcept { return profileDrift.load (std::memory_order_relaxed); }
     // Log-spaced spectra (dB), kDisplayPoints values each, 20 Hz .. 20 kHz
     void getDisplaySpectra (float* inputDb, float* outputDb, float* noiseDb) const noexcept;
 
@@ -158,6 +161,7 @@ private:
 
     // noise estimation
     std::vector<float> tracker;         // SPP-MMSE noise power
+    std::vector<float> trackerSmooth;   // time-smoothed tracker (adaptive mode)
     std::vector<float> trackerPBar;
     int trackerFrames = 0;
     std::vector<float> profileBins;     // learned profile, bin power at unity input gain
@@ -173,7 +177,7 @@ private:
     // gain computation state
     std::vector<float> a2Prev;          // previous |S_hat|^2 under H1
     std::vector<float> zeta;            // recursively smoothed a-priori SNR
-    std::vector<float> xi, vArr, gH1, pLocal, pGlobal, gainPrev, gain;
+    std::vector<float> xi, pArr, vArr, gH1, pLocal, pGlobal, gainPrev, gain;
     std::vector<float> globalKernel;
     int globalHalf = 9;
     int frameLoBin0 = 1, frameLoBin1 = 1, frameHiBin0 = 1, frameHiBin1 = 1;
@@ -203,6 +207,7 @@ private:
     // display
     std::atomic<float> reductionDb { 0.0f };
     std::atomic<float> speechActivity { 0.0f };
+    std::atomic<float> profileDrift { 0.0f };
     std::vector<int> dispBin0, dispBin1;
     std::vector<float> dispFrac;
     std::vector<float> dispIn, dispOut, dispNoise;   // smoothed, dB

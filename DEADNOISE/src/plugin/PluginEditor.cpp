@@ -635,9 +635,14 @@ void DeadnoiseAudioProcessorEditor::updateLearnStatus()
         profileStatus = "PROFILE LEARNED";
         profileDetail = "Noise floor " + juce::String (prof.levelDb, 1) + " dBFS, "
                       + juce::String (juce::roundToInt (prof.acceptedFraction * 100.0f)) + " % clean frames";
+        profileColour = colours::text;
         if (! d.profileMatchesCurrentRate())
             profileDetail = "Learned at " + juce::String (prof.sampleRate / 1000.0, 1) + " kHz. Relearn recommended.";
-        profileColour = colours::text;
+        else if (driftSeconds > 3.0f)
+        {
+            profileDetail = "Background changed by ~" + juce::String (juce::roundToInt (driftDb)) + " dB. Relearn recommended.";
+            profileColour = colours::warn;
+        }
     }
     else
     {
@@ -657,6 +662,9 @@ void DeadnoiseAudioProcessorEditor::timerCallback()
     inMeter.pushPeak (e.takeInputPeak(), dt);
     outMeter.pushPeak (e.takeOutputPeak(), dt);
     spectrum.refresh();
+
+    driftDb = 0.9f * driftDb + 0.1f * e.getDenoiser().getProfileDriftDb();
+    driftSeconds = driftDb > 2.5f ? driftSeconds + dt : 0.0f;
 
     const float red = e.getDenoiser().getAverageReductionDb();
     reductionDb = 0.8f * reductionDb + 0.2f * red;

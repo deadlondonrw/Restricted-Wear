@@ -77,7 +77,6 @@ if(DEADNOISE_BUILD_PLUGIN)
     target_link_libraries(DEADNOISE
         PRIVATE
             deadnoise_dsp
-            juce::juce_audio_utils
             juce::juce_audio_processors
             juce::juce_gui_basics
         PUBLIC
@@ -109,7 +108,7 @@ if(DEADNOISE_BUILD_PLUGIN AND DEADNOISE_BUILD_TESTS AND NOT CMAKE_CROSSCOMPILING
     target_compile_definitions(deadnoise_screenshot PRIVATE
         JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1 DEADNOISE_VERSION_STRING="${PROJECT_VERSION}")
     target_link_libraries(deadnoise_screenshot PRIVATE
-        deadnoise_dsp juce::juce_audio_utils juce::juce_audio_processors juce::juce_gui_basics
+        deadnoise_dsp juce::juce_audio_processors juce::juce_gui_basics
         juce::juce_recommended_config_flags)
 endif()
 

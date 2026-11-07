@@ -73,6 +73,7 @@ void SpectralDenoiser::prepare (double newSampleRate, int newNumChannels)
     alloc (a2Prev, 0.0f);  alloc (zeta, 0.0f);    alloc (xi, 0.0f);
     alloc (vArr, 0.0f);    alloc (gH1, 1.0f);     alloc (pLocal, 0.0f);
     alloc (pGlobal, 0.0f); alloc (gainPrev, 1.0f); alloc (gain, 1.0f);
+    alloc (trackerSmooth, 0.0f); alloc (pArr, 0.0f);
     mailboxBins.assign ((size_t) numBins, 0.0f);
 
     setupBands();
@@ -396,7 +397,23 @@ void SpectralDenoiser::updateNoiseEstimate (float g2) noexcept
             bandNum[(size_t) b] += tracker[(size_t) k];
             bandDen[(size_t) b] += profileBins[(size_t) k] * g2;
         }
-        const float a = timeConstantCoef (2.0, frameRate);
+        // Adapt quickly in speech-free frames and only slowly otherwise: the
+        // tracker leaks some speech energy and must not inflate the noise
+        // estimate during a sentence. A real change of the background level
+        // lifts (or lowers) almost *all* bands together, including the top
+        // bands where speech has no energy; speech leakage does not. Such a
+        // broadband change is followed quickly even though it looks like speech.
+        int up = 0, down = 0;
+        for (int b = 0; b < numCorrBands; ++b)
+        {
+            const double inst = bandDen[(size_t) b] > 0.0 ? bandNum[(size_t) b] / bandDen[(size_t) b] : 1.0;
+            const double rel = inst / bandCorr[(size_t) b];
+            up += rel > 1.4 ? 1 : 0;
+            down += rel < 0.7 ? 1 : 0;
+        }
+        const bool broadband = std::max (up, down) * 10 >= numCorrBands * 8;
+        const bool speechFree = pFrame < 0.05f && holdCounter == 0;
+        const float a = timeConstantCoef (broadband ? 1.0 : (speechFree ? 2.0 : 5.0), frameRate);
         for (int b = 0; b < numCorrBands; ++b)
         {
             float inst = bandDen[(size_t) b] > 0.0 ? (float) (bandNum[(size_t) b] / bandDen[(size_t) b]) : 1.0f;
@@ -404,6 +421,13 @@ void SpectralDenoiser::updateNoiseEstimate (float g2) noexcept
             float& c = bandCorr[(size_t) b];
             c = std::exp (a * std::log (c) + (1.0f - a) * std::log (inst));
             c = clampv (c, 0.25f, 2.8f);
+        }
+        // how far the background has drifted from the learned profile (dB, energy weighted)
+        {
+            double num = 0.0, den = 0.0;
+            for (int b = 0; b < numCorrBands; ++b) { num += bandDen[(size_t) b] * std::abs (std::log (bandCorr[(size_t) b])); den += bandDen[(size_t) b]; }
+            const float driftDb = den > 0.0 ? (float) (4.343 * num / den) : 0.0f;
+            profileDrift.store (driftDb, std::memory_order_relaxed);
         }
         for (int k = 0; k < numBins; ++k)
         {
@@ -416,8 +440,30 @@ void SpectralDenoiser::updateNoiseEstimate (float g2) noexcept
     }
     else
     {
+        // Without a profile the tracker is the noise estimate. Its per-bin
+        // variance would let individual bins be under-estimated (= musical
+        // noise), so smooth it in time (stationary noise assumed, ~0.4 s) and
+        // across +-3 bins (noise spectra are smooth) before use.
+        const bool speechFree = pFrame < 0.05f && holdCounter == 0;
+        const float a = timeConstantCoef (speechFree ? 0.4 : 6.0, frameRate);
         for (int k = 0; k < numBins; ++k)
-            noise[(size_t) k] = std::max (tracker[(size_t) k], floorPow);
+        {
+            float& ts = trackerSmooth[(size_t) k];
+            ts = trackerFrames <= kTrackerInitFrames ? tracker[(size_t) k] : a * ts + (1.0f - a) * tracker[(size_t) k];
+        }
+        static constexpr float w[7] = { 0.25f, 0.5f, 0.75f, 1.0f, 0.75f, 0.5f, 0.25f };
+        for (int k = 0; k < numBins; ++k)
+        {
+            float acc = 0.0f, ws = 0.0f;
+            for (int j = -3; j <= 3; ++j)
+            {
+                const int kk = k + j;
+                if (kk < 0 || kk >= numBins) continue;
+                acc += w[j + 3] * trackerSmooth[(size_t) kk];
+                ws += w[j + 3];
+            }
+            noise[(size_t) k] = std::max (acc / ws, floorPow);
+        }
     }
 }
 
@@ -498,20 +544,63 @@ void SpectralDenoiser::computeGains (const ModeParams& mp) noexcept
     const float lnGMin = std::log (dbToGain (mp.gMinDb));
     const float lnDeep = std::log (dbToGain (mp.deepFloorDb));
     const float rel = timeConstantCoef (mp.releaseSeconds, frameRate);
-    double eIn = 0.0, eOut = 0.0;
+    // speech presence probability per bin. DC and Nyquist are real-valued
+    // (one degree of freedom, heavy-tailed) and carry no speech: always noise.
     for (int k = 0; k < K; ++k)
     {
         float q = 1.0f - pLocal[(size_t) k] * pGlobal[(size_t) k] * pFrame;
         q = clampv (q, 0.0f, mp.qMax);
         const float ratio = q / (1.0f - q);
         const float x = xi[(size_t) k];
-        const float p = 1.0f / (1.0f + ratio * (1.0f + x) * std::exp (-std::min (vArr[(size_t) k], 80.0f)));
+        pArr[(size_t) k] = 1.0f / (1.0f + ratio * (1.0f + x) * std::exp (-std::min (vArr[(size_t) k], 80.0f)));
+    }
+    pArr[0] = 0.0f;
+    pArr[(size_t) K - 1] = 0.0f;
+
+    // Onset evidence: the decision-directed SNR lags a few frames behind a
+    // word onset, the likelihood ratio does not. Three or more speech-band
+    // bins with p > 0.5 practically never happen in noise alone (it needs a
+    // posterior SNR of ~30), so it raises frame-level presence immediately.
+    // Evaluated with the prior fixed at q = qMax (speech assumed absent) so it
+    // does not depend on pFrame itself: no feedback loop that could hold the
+    // frame detector open in noise.
+    {
+        const float ratioMax = mp.qMax / (1.0f - mp.qMax);
+        int strong = 0;
+        for (int k = frameLoBin0; k < frameHiBin1; ++k)
+        {
+            const float pIndep = 1.0f / (1.0f + ratioMax * (1.0f + xi[(size_t) k]) * std::exp (-std::min (vArr[(size_t) k], 80.0f)));
+            strong += pIndep > 0.5f ? 1 : 0;
+        }
+        const float pOnset = clampv ((float) (strong - 2) / 4.0f, 0.0f, 1.0f);   // 3+ strong bins
+        if (pOnset > pFrame)
+        {
+            pFrame = pOnset;
+            holdCounter = (int) std::round (mp.holdSeconds * frameRate);
+            speechActivity.store (pFrame, std::memory_order_relaxed);
+        }
+    }
+
+    double eIn = 0.0, eOut = 0.0;
+    const float uniformBase = clampv (1.0f - 2.0f * pFrame, 0.0f, 1.0f);
+    for (int k = 0; k < K; ++k)
+    {
+        const float p = pArr[(size_t) k];
         float lnG = p * std::log (gH1[(size_t) k]) + (1.0f - p) * lnGMin;
-        // Deep floor: applied uniformly in speech-free frames (constant gain, no
-        // musical noise) and, inside speech frames, only to bins where speech is
-        // confidently absent.
-        const float deepW = std::max (clampv (1.0f - 2.0f * pFrame, 0.0f, 1.0f), clampv (1.0f - p * (1.0f / kDeepP), 0.0f, 1.0f));
-        lnG += deepW * lnDeep;
+        if (lnDeep < 0.0f)
+        {
+            // Deep floor: applied almost uniformly in speech-free frames
+            // (constant gain, no musical noise) and, inside speech frames, only
+            // to bins where speech is confidently absent. Spectrally supported
+            // evidence (a word onset spans several bins) overrides it before
+            // the frame detector reacts; isolated single-bin noise peaks do not.
+            float support = 0.0f;
+            for (int j = -2; j <= 2; ++j) support += pArr[(size_t) clampv (k + j, 0, K - 1)];
+            support = std::min (p, support * 0.2f);
+            const float uniformW = uniformBase * (1.0f - support);
+            const float deepW = std::max (uniformW, clampv (1.0f - p * (1.0f / kDeepP), 0.0f, 1.0f));
+            lnG += deepW * lnDeep;
+        }
         float g = std::exp (amount * lnG);
         g = std::max (g, gainPrev[(size_t) k] * rel);
         g = std::min (g, 1.0f);
@@ -534,6 +623,7 @@ void SpectralDenoiser::installPendingProfile() noexcept
     if (mailboxClear)
     {
         profileActive = false;
+        profileDrift.store (0.0f);
         trackerFrames = std::min (trackerFrames, kTrackerInitFrames);
     }
     else if (mailboxFft == fftSize)
@@ -544,6 +634,7 @@ void SpectralDenoiser::installPendingProfile() noexcept
         for (int k = 0; k < numBins; ++k) tracker[(size_t) k] = profileBins[(size_t) k] * g2;
         std::fill (trackerPBar.begin(), trackerPBar.end(), 0.0f);
         std::fill (bandCorr.begin(), bandCorr.end(), 1.0f);
+        profileDrift.store (0.0f);
         trackerFrames = kTrackerInitFrames;
     }
     mailbox.store (mbEmpty, std::memory_order_release);

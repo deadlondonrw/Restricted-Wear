@@ -120,7 +120,7 @@ private:
     juce::Colour profileColour = dnui::colours::textDim;
     float learnProgress = 0.0f;
     bool learning = false;
-    float reductionDb = 0.0f, speechActivity = 0.0f;
+    float reductionDb = 0.0f, speechActivity = 0.0f, driftDb = 0.0f, driftSeconds = 0.0f;
     bool gateOpen = true;
     double lastTimerMs = 0.0;
 
