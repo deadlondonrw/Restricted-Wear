@@ -93,6 +93,26 @@ if(DEADNOISE_BUILD_PLUGIN)
 endif()
 
 # ------------------------------------------------------------------------------
+# Host-level test (loads the built .vst3 like a DAW) and UI screenshot tool
+if(DEADNOISE_BUILD_PLUGIN AND DEADNOISE_BUILD_TESTS AND NOT CMAKE_CROSSCOMPILING)
+    juce_add_console_app(deadnoise_host_test PRODUCT_NAME "deadnoise_host_test")
+    target_sources(deadnoise_host_test PRIVATE tools/host_test.cpp)
+    target_compile_definitions(deadnoise_host_test PRIVATE
+        JUCE_PLUGINHOST_VST3=1 JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1)
+    target_link_libraries(deadnoise_host_test PRIVATE
+        deadnoise_dsp juce::juce_audio_processors juce::juce_gui_basics
+        juce::juce_recommended_config_flags)
+
+    juce_add_console_app(deadnoise_screenshot PRODUCT_NAME "deadnoise_screenshot")
+    target_sources(deadnoise_screenshot PRIVATE
+        tools/screenshot.cpp src/plugin/PluginProcessor.cpp src/plugin/PluginEditor.cpp)
+    target_compile_definitions(deadnoise_screenshot PRIVATE
+        JUCE_WEB_BROWSER=0 JUCE_USE_CURL=0 JUCE_MODAL_LOOPS_PERMITTED=1 DEADNOISE_VERSION_STRING="${PROJECT_VERSION}")
+    target_link_libraries(deadnoise_screenshot PRIVATE
+        deadnoise_dsp juce::juce_audio_utils juce::juce_audio_processors juce::juce_gui_basics
+        juce::juce_recommended_config_flags)
+endif()
+
 if(DEADNOISE_BUILD_TESTS AND NOT CMAKE_CROSSCOMPILING)
     add_executable(deadnoise_tests tests/dsp_tests.cpp)
     target_link_libraries(deadnoise_tests PRIVATE deadnoise_dsp)

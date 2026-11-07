@@ -204,6 +204,7 @@ private:
     std::atomic<float> reductionDb { 0.0f };
     std::atomic<float> speechActivity { 0.0f };
     std::vector<int> dispBin0, dispBin1;
+    std::vector<float> dispFrac;
     std::vector<float> dispIn, dispOut, dispNoise;   // smoothed, dB
     std::atomic<float> dispInA[kDisplayPoints], dispOutA[kDisplayPoints], dispNoiseA[kDisplayPoints];
     int displayCounter = 0;

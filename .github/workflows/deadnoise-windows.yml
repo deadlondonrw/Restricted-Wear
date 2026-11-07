@@ -72,13 +72,23 @@ jobs:
             --output-dir ci-logs build/DEADNOISE_artefacts/Release/VST3/DEADNOISE.vst3 \
             | tee ci-logs/pluginval-windows.txt
 
+      - name: Host-level test (loads the .vst3 through VST3 hosting, like a DAW)
+        run: |
+          set -o pipefail
+          build/deadnoise_host_test_artefacts/Release/deadnoise_host_test.exe build/DEADNOISE_artefacts/Release/VST3/DEADNOISE.vst3 \
+            | tee ci-logs/host-test-windows.txt
+
+      - name: Editor screenshot (rendered on Windows)
+        run: build/deadnoise_screenshot_artefacts/Release/deadnoise_screenshot.exe ci-logs/deadnoise-ui-windows.png
+
       - name: Package
         run: |
           rm -rf DEADNOISE/bin && mkdir -p DEADNOISE/bin DEADNOISE/docs/ci
           cp -r build/DEADNOISE_artefacts/Release/VST3/DEADNOISE.vst3 DEADNOISE/bin/
           (cd DEADNOISE/bin && 7z a -tzip DEADNOISE-windows-x64.zip DEADNOISE.vst3 > /dev/null)
           (cd DEADNOISE/bin && sha256sum DEADNOISE-windows-x64.zip DEADNOISE.vst3/Contents/x86_64-win/DEADNOISE.vst3 > SHA256SUMS.txt)
-          cp ci-logs/dsp-tests-windows.txt ci-logs/vst3-validator-windows.txt ci-logs/pluginval-windows.txt DEADNOISE/docs/ci/
+          cp ci-logs/dsp-tests-windows.txt ci-logs/vst3-validator-windows.txt ci-logs/pluginval-windows.txt \
+             ci-logs/host-test-windows.txt ci-logs/deadnoise-ui-windows.png DEADNOISE/docs/ci/
           {
             echo "commit: $GITHUB_SHA"
             echo "runner: $RUNNER_OS $ImageOS $ImageVersion"

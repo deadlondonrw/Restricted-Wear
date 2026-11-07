@@ -99,17 +99,31 @@ void SpectralDenoiser::prepare (double newSampleRate, int newNumChannels)
     frameHiBin0 = frameLoBin1;
     frameHiBin1 = std::max (frameHiBin0 + 1, toBin (std::min (12000.0, sampleRate * 0.45)));
 
-    // display mapping, log spaced 20 Hz .. 20 kHz
+    // display mapping, log spaced 20 Hz .. 20 kHz. Points narrower than a bin
+    // interpolate between neighbouring bins (no staircase at low frequencies).
     dispBin0.resize (kDisplayPoints);
     dispBin1.resize (kDisplayPoints);
+    dispFrac.resize (kDisplayPoints);
     for (int i = 0; i < kDisplayPoints; ++i)
     {
+        const double fc  = 20.0 * std::pow (1000.0, (double) i / (kDisplayPoints - 1));
         const double fLo = 20.0 * std::pow (1000.0, (i - 0.5) / (kDisplayPoints - 1));
         const double fHi = 20.0 * std::pow (1000.0, (i + 0.5) / (kDisplayPoints - 1));
-        int b0 = clampv ((int) std::floor (fLo / binHz), 0, numBins - 1);
-        int b1 = clampv ((int) std::ceil (fHi / binHz), b0 + 1, numBins);
-        dispBin0[(size_t) i] = b0;
-        dispBin1[(size_t) i] = b1;
+        if ((fHi - fLo) < 2.0 * binHz)
+        {
+            const double pos = clampv (fc / binHz, 0.0, (double) numBins - 1.001);
+            dispBin0[(size_t) i] = (int) pos;
+            dispBin1[(size_t) i] = -1;                 // interpolate mode
+            dispFrac[(size_t) i] = (float) (pos - (int) pos);
+        }
+        else
+        {
+            int b0 = clampv ((int) std::floor (fLo / binHz), 0, numBins - 1);
+            int b1 = clampv ((int) std::ceil (fHi / binHz), b0 + 1, numBins);
+            dispBin0[(size_t) i] = b0;
+            dispBin1[(size_t) i] = b1;
+            dispFrac[(size_t) i] = 0.0f;
+        }
     }
     dispIn.assign (kDisplayPoints, -150.0f);
     dispOut.assign (kDisplayPoints, -150.0f);
@@ -714,14 +728,25 @@ void SpectralDenoiser::updateDisplay() noexcept
     for (int i = 0; i < kDisplayPoints; ++i)
     {
         const int b0 = dispBin0[(size_t) i], b1 = dispBin1[(size_t) i];
-        float pin = 0.0f, pout = 0.0f, pn = 0.0f;
-        for (int k = b0; k < b1; ++k)
+        float pin = 0.0f, pout = 0.0f, pn = 0.0f, inv = ref;
+        if (b1 < 0)
         {
-            pin += power[(size_t) k];
-            pout += power[(size_t) k] * gain[(size_t) k] * gain[(size_t) k];
-            pn += noise[(size_t) k];
+            const float fr = dispFrac[(size_t) i];
+            const size_t k = (size_t) b0;
+            pin  = power[k] * (1.0f - fr) + power[k + 1] * fr;
+            pout = power[k] * gain[k] * gain[k] * (1.0f - fr) + power[k + 1] * gain[k + 1] * gain[k + 1] * fr;
+            pn   = noise[k] * (1.0f - fr) + noise[k + 1] * fr;
         }
-        const float inv = ref / (float) (b1 - b0);
+        else
+        {
+            for (int k = b0; k < b1; ++k)
+            {
+                pin += power[(size_t) k];
+                pout += power[(size_t) k] * gain[(size_t) k] * gain[(size_t) k];
+                pn += noise[(size_t) k];
+            }
+            inv = ref / (float) (b1 - b0);
+        }
         const float din = powerToDb (pin * inv), dout = powerToDb (pout * inv), dn = powerToDb (pn * inv);
         dispIn[(size_t) i]    = din  > dispIn[(size_t) i]  ? din  : a * dispIn[(size_t) i]  + (1 - a) * din;
         dispOut[(size_t) i]   = dout > dispOut[(size_t) i] ? dout : a * dispOut[(size_t) i] + (1 - a) * dout;

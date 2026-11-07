@@ -133,6 +133,10 @@ Knob::Knob (juce::AudioProcessorValueTreeState& state, const juce::String& param
     slider.setRotaryParameters (juce::MathConstants<float>::pi * 1.22f, juce::MathConstants<float>::pi * 2.78f, true);
     slider.getProperties().set ("large", large);
     slider.setVelocityBasedMode (false);
+    slider.setColour (juce::Slider::textBoxOutlineColourId, juce::Colours::transparentBlack);
+    slider.setColour (juce::Slider::textBoxBackgroundColourId, juce::Colours::transparentBlack);
+    slider.setColour (juce::Slider::textBoxTextColourId, colours::text);
+    slider.setColour (juce::Slider::textBoxHighlightColourId, colours::track);
     slider.setMouseDragSensitivity (large ? 260 : 200);
     addAndMakeVisible (slider);
     attachment = std::make_unique<juce::AudioProcessorValueTreeState::SliderAttachment> (state, paramId, slider);
@@ -370,7 +374,7 @@ DeadnoiseAudioProcessorEditor::DeadnoiseAudioProcessorEditor (DeadnoiseAudioProc
     resetButton.setTooltip ("Restore all controls to their default settings (keeps the learned noise profile).");
     clearButton.setTooltip ("Forget the learned noise profile and fall back to adaptive noise tracking.");
 
-    setSize (932, 588);
+    setSize (932, 628);
     updateLearnStatus();
     startTimerHz (30);
 }
@@ -400,13 +404,13 @@ void DeadnoiseAudioProcessorEditor::paint (juce::Graphics& g)
     g.fillAll (colours::background);
 
     // ---- header
-    auto h = headerArea;
+    auto h = headerArea.withTrimmedLeft (18).removeFromLeft (360);
     g.setColour (colours::text);
     g.setFont (uiFont (26.0f, true, 0.32f));
-    g.drawText ("DEADNOISE", h.removeFromLeft (260).withTrimmedLeft (18), juce::Justification::centredLeft);
+    g.drawText ("DEADNOISE", juce::Rectangle<int> (h.getX(), h.getY() + 10, h.getWidth(), 30), juce::Justification::centredLeft);
     g.setColour (colours::textFaint);
-    g.setFont (uiFont (10.0f, true, 0.2f));
-    g.drawText ("MICROPHONE NOISE SUPPRESSION", h.removeFromLeft (240), juce::Justification::centredLeft);
+    g.setFont (uiFont (9.0f, true, 0.22f));
+    g.drawText ("MICROPHONE NOISE SUPPRESSION", juce::Rectangle<int> (h.getX() + 2, h.getY() + 42, h.getWidth(), 12), juce::Justification::centredLeft);
 
     auto chip = [&] (juce::Rectangle<int> a, const juce::String& label, const juce::String& value, juce::Colour dot)
     {
@@ -426,15 +430,15 @@ void DeadnoiseAudioProcessorEditor::paint (juce::Graphics& g)
         g.setColour (colours::text);
         g.drawText (value, t, juce::Justification::centredLeft);
     };
-    auto chips = headerArea.reduced (16, 14).removeFromRight (420);
+    auto chips = headerArea.reduced (16, 14).removeFromRight (470);
     const double sr = proc.getCurrentSampleRate();
     const int lat = proc.getCurrentLatency();
     const juce::String latText = sr > 0 ? juce::String (1000.0 * lat / sr, 1) + " ms" : "--";
-    chip (chips.removeFromRight (128), "LATENCY", latText, colours::textFaint);
+    chip (chips.removeFromRight (140), "LATENCY", latText, colours::textFaint);
     chips.removeFromRight (8);
-    chip (chips.removeFromRight (140), "ENGINE", "SPECTRAL DSP", colours::text);
+    chip (chips.removeFromRight (180), "ENGINE", "SPECTRAL DSP", colours::text);
     chips.removeFromRight (8);
-    chip (chips.removeFromRight (136), "VOICE", speechActivity > 0.5f ? "ACTIVE" : "--",
+    chip (chips.removeFromRight (126), "VOICE", speechActivity > 0.5f ? "ACTIVE" : "--",
           speechActivity > 0.5f ? colours::text : colours::textFaint);
 
     // ---- panels
@@ -488,6 +492,18 @@ void DeadnoiseAudioProcessorEditor::paint (juce::Graphics& g)
         g.drawText (juce::String (reductionDb, 1) + " dB", ro, juce::Justification::centredRight);
     }
 
+    // monitoring hint
+    {
+        const int m = juce::roundToInt (proc.getState().getRawParameterValue (ParamID::monitor)->load());
+        const char* hint = m == 1 ? "Unprocessed input, latency-aligned for a fair A/B comparison."
+                         : m == 2 ? "Only what DEADNOISE removes. Hearing words here means the reduction is too strong."
+                                  : "The cleaned signal that goes to the mixer.";
+        auto a = monitorArea.reduced (14, 0).withTrimmedTop (74);
+        g.setColour (colours::textDim);
+        g.setFont (uiFont (11.0f));
+        g.drawFittedText (hint, a.removeFromTop (34), juce::Justification::topLeft, 2);
+    }
+
     // gate state dot
     {
         const bool on = proc.getState().getRawParameterValue (ParamID::gateOn)->load() > 0.5f;
@@ -506,7 +522,7 @@ void DeadnoiseAudioProcessorEditor::paint (juce::Graphics& g)
 void DeadnoiseAudioProcessorEditor::resized()
 {
     auto r = getLocalBounds();
-    headerArea = r.removeFromTop (60);
+    headerArea = r.removeFromTop (64);
     r.reduce (16, 0);
     r.removeFromBottom (18);
 
@@ -517,7 +533,7 @@ void DeadnoiseAudioProcessorEditor::resized()
     // side columns: meter + gain knob
     auto placeColumn = [] (juce::Rectangle<int> col, dnui::LevelMeter& m, dnui::Knob& k)
     {
-        k.setBounds (col.removeFromBottom (98));
+        k.setBounds (col.removeFromBottom (118));
         col.removeFromBottom (8);
         m.setBounds (col.withSizeKeepingCentre (52, col.getHeight()));
     };
@@ -528,7 +544,7 @@ void DeadnoiseAudioProcessorEditor::resized()
     spectrum.setBounds (spectrumArea.reduced (8, 8));
     r.removeFromTop (12);
 
-    auto row2 = r.removeFromTop (214);
+    auto row2 = r.removeFromTop (212);
     r.removeFromTop (12);
     auto row3 = r;
 
@@ -552,8 +568,9 @@ void DeadnoiseAudioProcessorEditor::resized()
     }
     {
         auto a = voiceArea.reduced (8, 10);
-        voice.setBounds (a.removeFromTop (a.getHeight() / 2 + 6).withSizeKeepingCentre (130, a.getHeight() / 2 + 6));
-        mix.setBounds (a.withSizeKeepingCentre (130, a.getHeight()));
+        auto top = a.removeFromTop (a.getHeight() / 2);
+        voice.setBounds (top.withSizeKeepingCentre (140, top.getHeight()));
+        mix.setBounds (a.withSizeKeepingCentre (140, a.getHeight()));
     }
 
     resetButton.setBounds (row3.removeFromRight (96).withSizeKeepingCentre (96, 40));
@@ -569,7 +586,7 @@ void DeadnoiseAudioProcessorEditor::resized()
     {
         auto a = gateArea.reduced (16, 0);
         gateToggle.setBounds (a.removeFromTop (40).removeFromLeft (150));
-        auto knobs = gateArea.reduced (10, 6).withTrimmedTop (34);
+        auto knobs = gateArea.reduced (10, 8).withTrimmedTop (34);
         gateThresh.setBounds (knobs.removeFromLeft (knobs.getWidth() / 2).withSizeKeepingCentre (100, knobs.getHeight()));
         gateRange.setBounds (knobs.withSizeKeepingCentre (100, knobs.getHeight()));
     }
@@ -655,4 +672,5 @@ void DeadnoiseAudioProcessorEditor::timerCallback()
     repaint (learnArea);
     repaint (reductionArea);
     repaint (gateArea);
+    repaint (monitorArea);
 }
