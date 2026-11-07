@@ -15,13 +15,13 @@ DEADNOISE DSP test suite
      96000 Hz  1 ch  latency 2048 smp (21.33 ms)  max |out - delayed in| = 8.94e-08
      96000 Hz  2 ch  latency 2048 smp (21.33 ms)  max |out - delayed in| = 8.94e-08
     impulse peak offset with suppression active (samples)   1024.000 
-    impulse peak level preserved (dB)                        -0.572 
+    impulse peak level preserved (dB)                        -0.606 
 
 [Silence, NaN / Inf input, extreme levels]
     digital silence -> exact digital silence: yes
-    NaN/Inf burst: output finite = yes, still suppressing afterwards (-99.5 dB)
+    NaN/Inf burst: output finite = yes, still suppressing afterwards (-99.9 dB)
     loud input: peak in (dBFS)                               -0.082 
-    loud input: peak out (dBFS)                              -0.105 
+    loud input: peak out (dBFS)                              -0.104 
 
 [Host buffer-size independence (random block sizes 1..4096)]
     max difference fixed 512 vs random blocks                 0.000 
@@ -40,43 +40,43 @@ DEADNOISE DSP test suite
 
 [Noise suppression depth (stationary hiss, profile learned)]
     HF hiss   Natural   50 %   attenuation  -16.0 dB  (target -16.0 dB)
-    HF hiss   Natural   80 %   attenuation  -25.5 dB  (target -25.6 dB)
+    HF hiss   Natural   80 %   attenuation  -25.6 dB  (target -25.6 dB)
     HF hiss   Natural  100 %   attenuation  -31.9 dB  (target -32.0 dB)
     HF hiss   Maximum   50 %   attenuation  -30.0 dB  (target -30.0 dB)
     HF hiss   Maximum   80 %   attenuation  -48.0 dB  (target -48.0 dB)
-    HF hiss   Maximum  100 %   attenuation  -60.0 dB  (target -60.0 dB)
+    HF hiss   Maximum  100 %   attenuation  -59.9 dB  (target -60.0 dB)
     white     Natural   50 %   attenuation  -16.0 dB  (target -16.0 dB)
     white     Natural   80 %   attenuation  -25.6 dB  (target -25.6 dB)
     white     Natural  100 %   attenuation  -32.0 dB  (target -32.0 dB)
     white     Maximum   50 %   attenuation  -30.0 dB  (target -30.0 dB)
     white     Maximum   80 %   attenuation  -48.0 dB  (target -48.0 dB)
     white     Maximum  100 %   attenuation  -60.0 dB  (target -60.0 dB)
-    adaptive tracking (no profile) attenuation (dB)         -25.151 dB
-    +12 dB input gain after learning: attenuation (dB)      -31.884 dB
-    hiss +6 dB after learning (3 s later) attenuation (dB)    -24.353 dB
+    adaptive tracking (no profile) attenuation (dB)         -25.525 dB
+    +12 dB input gain after learning: attenuation (dB)      -31.797 dB
+    hiss +6 dB after learning (3 s later) attenuation (dB)    -25.001 dB
 
 [Speech preservation (synthetic voiced speech + hiss, 20 dB SNR)]
-    Natural  speech level change  -0.00 dB   SDR in  20.0 dB -> out  34.3 dB
+    Natural  speech level change  -0.00 dB   SDR in  20.0 dB -> out  34.4 dB
     Maximum  speech level change  -0.00 dB   SDR in  20.0 dB -> out  34.3 dB
 
 [Stereo linking, monitor modes, gate]
     identical L/R -> identical output: yes;  L-only input -> R stays silent: yes
-    'Original' = latency-aligned input (err 1.5e-08);  'Removed' = original - processed (err 1.4e-08)
+    'Original' = latency-aligned input (err 1.5e-08);  'Removed' = original - processed (err 1.5e-08)
     gate: extra attenuation in pauses (dB)                  -29.996 dB
     gate: level change during speech (dB)                    -0.001 dB
     gate: max per-sample gain step                            0.005 
 
 [Profile reuse across sample rates / FFT sizes]
-    48 kHz profile used at 96 kHz: attenuation (dB)         -31.923 dB
+    48 kHz profile used at 96 kHz: attenuation (dB)         -31.959 dB
     re-prepare 44.1 -> 96 -> 48 kHz with profile: ok
 
 [Stress: random parameter automation every block (30 s, stereo)]
     output finite: yes, peak 69.65 (input peak x gains bounded)
 
 [CPU cost]
-     44100 Hz stereo, 256-sample blocks: 1.83 % of one CPU core (real-time factor 0.0183)
-     48000 Hz stereo, 256-sample blocks: 2.00 % of one CPU core (real-time factor 0.0200)
-     96000 Hz stereo, 256-sample blocks: 3.97 % of one CPU core (real-time factor 0.0397)
+     44100 Hz stereo, 256-sample blocks: 1.16 % of one CPU core (real-time factor 0.0116)
+     48000 Hz stereo, 256-sample blocks: 1.28 % of one CPU core (real-time factor 0.0128)
+     96000 Hz stereo, 256-sample blocks: 2.57 % of one CPU core (real-time factor 0.0257)
 
 69 checks, 0 failures
 ALL TESTS PASSED
