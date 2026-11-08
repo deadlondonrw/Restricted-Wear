@@ -1,0 +1,127 @@
+MSBuild version 17.14.60+43b635718 for .NET Framework
+
+  Checking File Globs
+  1>Checking Build System
+  Generating DEADNOISE_artefacts/JuceLibraryCode/DEADNOISE_resources.rc
+  Building VST3 manifest helper for DEADNOISE
+  Generating deadnoise_host_test_artefacts/JuceLibraryCode/deadnoise_host_test_resources.rc
+  Building Custom Rule D:/a/Restricted-Wear/Restricted-Wear/DEADNOISE/CMakeLists.txt
+  Building Custom Rule D:/a/Restricted-Wear/Restricted-Wear/DEADNOISE/CMakeLists.txt
+  -- Selecting Windows SDK version 10.0.26100.0 to target Windows 10.0.20348.
+  deadnoise_host_test_rc_lib.vcxproj -> D:\a\Restricted-Wear\Restricted-Wear\build\deadnoise_host_test_rc_lib.dir\Release\deadnoise_host_test_rc_lib.lib
+  DEADNOISE_rc_lib.vcxproj -> D:\a\Restricted-Wear\Restricted-Wear\build\DEADNOISE_rc_lib.dir\Release\DEADNOISE_rc_lib.lib
+  Generating deadnoise_screenshot_artefacts/JuceLibraryCode/deadnoise_screenshot_resources.rc
+  Building Custom Rule D:/a/Restricted-Wear/Restricted-Wear/DEADNOISE/CMakeLists.txt
+  deadnoise_screenshot_rc_lib.vcxproj -> D:\a\Restricted-Wear\Restricted-Wear\build\deadnoise_screenshot_rc_lib.dir\Release\deadnoise_screenshot_rc_lib.lib
+  -- The CXX compiler identification is MSVC 19.44.35229.0
+  -- Detecting CXX compiler ABI info
+  -- Detecting CXX compiler ABI info - done
+  -- Check for working CXX compiler: C:/Program Files/Microsoft Visual Studio/2022/Enterprise/VC/Tools/MSVC/14.44.35207/bin/Hostx64/x64/cl.exe - skipped
+  -- Detecting CXX compile features
+  -- Detecting CXX compile features - done
+  -- Configuring done (2.0s)
+  -- Generating done (0.0s)
+  -- Build files have been written to: D:/a/Restricted-Wear/Restricted-Wear/build/vst3_helpers/DEADNOISE
+  MSBuild version 17.14.60+43b635718 for .NET Framework
+  
+    1>Checking Build System
+    Building Custom Rule D:/a/_temp/JUCE/extras/Build/CMake/juce_vst3_helper/CMakeLists.txt
+    juce_VST3ManifestHelper.cpp
+    vst3_helper.vcxproj -> D:\a\Restricted-Wear\Restricted-Wear\build\vst3_helpers\DEADNOISE\vst3_helper.exe
+    Building Custom Rule D:/a/_temp/JUCE/extras/Build/CMake/juce_vst3_helper/CMakeLists.txt
+  Building Custom Rule D:/a/Restricted-Wear/Restricted-Wear/DEADNOISE/CMakeLists.txt
+  Building Custom Rule D:/a/Restricted-Wear/Restricted-Wear/DEADNOISE/CMakeLists.txt
+  SpectralDenoiser.cpp
+  NoiseProfile.cpp
+  DeadnoiseEngine.cpp
+  Generating Code...
+  deadnoise_dsp.vcxproj -> D:\a\Restricted-Wear\Restricted-Wear\build\Release\deadnoise_dsp.lib
+  Building Custom Rule D:/a/Restricted-Wear/Restricted-Wear/DEADNOISE/CMakeLists.txt
+  PluginProcessor.cpp
+  PluginEditor.cpp
+  juce_audio_processors.cpp
+  juce_gui_extra.cpp
+  juce_gui_basics.cpp
+  juce_gui_basics_2.cpp
+  juce_gui_basics_3.cpp
+  juce_gui_basics_4.cpp
+D:\a\_temp\JUCE\modules\juce_gui_basics\juce_gui_basics.cpp(61): warning : This version of JUCE does not use the splash screen, the flag JUCE_DISPLAY_SPLASH_SCREEN is ignored [D:\a\Restricted-Wear\Restricted-Wear\build\DEADNOISE.vcxproj]
+  juce_gui_basics_5.cpp
+  juce_graphics.cpp
+  juce_graphics_Harfbuzz.cpp
+  juce_events.cpp
+  juce_core.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_processors_headless.cpp
+  juce_audio_processors_headless_ara.cpp
+  juce_audio_processors_headless_lv2_libs.cpp
+  juce_audio_basics.cpp
+  juce_graphics_Sheenbidi.c
+  DEADNOISE.vcxproj -> D:\a\Restricted-Wear\Restricted-Wear\build\DEADNOISE_artefacts\Release\DEADNOISE_SharedCode.lib
+  Building Custom Rule D:/a/Restricted-Wear/Restricted-Wear/DEADNOISE/CMakeLists.txt
+  juce_audio_plugin_client_AAX.cpp
+  juce_audio_plugin_client_AAX_utils.cpp
+  juce_audio_plugin_client_ARA.cpp
+  juce_audio_plugin_client_LV2.cpp
+  juce_audio_plugin_client_Unity.cpp
+  juce_audio_plugin_client_Standalone.cpp
+  juce_audio_plugin_client_VST2.cpp
+  juce_audio_plugin_client_VST3.cpp
+     Creating library D:/a/Restricted-Wear/Restricted-Wear/build/DEADNOISE_artefacts/Release/VST3/DEADNOISE.lib and object D:/a/Restricted-Wear/Restricted-Wear/build/DEADNOISE_artefacts/Release/VST3/DEADNOISE.exp
+  Generating code
+  Finished generating code
+  DEADNOISE_VST3.vcxproj -> D:\a\Restricted-Wear\Restricted-Wear\build\DEADNOISE_artefacts\Release\VST3\DEADNOISE.vst3\Contents\x86_64-win\DEADNOISE.vst3
+  removing moduleinfo.json
+  creating D:/a/Restricted-Wear/Restricted-Wear/build/DEADNOISE_artefacts/Release/VST3/DEADNOISE.vst3/Contents/Resources/moduleinfo.json
+  Building Custom Rule D:/a/Restricted-Wear/Restricted-Wear/DEADNOISE/CMakeLists.txt
+  Building Custom Rule D:/a/Restricted-Wear/Restricted-Wear/DEADNOISE/CMakeLists.txt
+  Building Custom Rule D:/a/Restricted-Wear/Restricted-Wear/DEADNOISE/CMakeLists.txt
+  dsp_tests.cpp
+  deadnoise_cli.cpp
+  screenshot.cpp
+  PluginProcessor.cpp
+  PluginEditor.cpp
+  juce_audio_processors.cpp
+  Building Custom Rule D:/a/Restricted-Wear/Restricted-Wear/DEADNOISE/CMakeLists.txt
+  juce_gui_extra.cpp
+  deadnoise_cli.vcxproj -> D:\a\Restricted-Wear\Restricted-Wear\build\Release\deadnoise_cli.exe
+  deadnoise_tests.vcxproj -> D:\a\Restricted-Wear\Restricted-Wear\build\Release\deadnoise_tests.exe
+  juce_gui_basics.cpp
+  juce_gui_basics_2.cpp
+  juce_gui_basics_3.cpp
+  host_test.cpp
+  juce_audio_processors.cpp
+  juce_gui_extra.cpp
+  juce_gui_basics.cpp
+  juce_gui_basics_4.cpp
+  juce_gui_basics_5.cpp
+  juce_gui_basics_2.cpp
+  juce_gui_basics_3.cpp
+  juce_graphics.cpp
+  juce_graphics_Harfbuzz.cpp
+  juce_events.cpp
+  juce_gui_basics_4.cpp
+  juce_gui_basics_5.cpp
+  juce_core.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_graphics.cpp
+  juce_audio_processors_headless.cpp
+  juce_graphics_Harfbuzz.cpp
+  juce_events.cpp
+  juce_core.cpp
+  juce_audio_processors_headless_ara.cpp
+  juce_audio_processors_headless_lv2_libs.cpp
+  juce_audio_basics.cpp
+  juce_core_CompilationTime.cpp
+  juce_data_structures.cpp
+  juce_audio_processors_headless.cpp
+  juce_audio_processors_headless_ara.cpp
+  juce_audio_processors_headless_lv2_libs.cpp
+  juce_audio_basics.cpp
+  juce_graphics_Sheenbidi.c
+  deadnoise_screenshot.vcxproj -> D:\a\Restricted-Wear\Restricted-Wear\build\deadnoise_screenshot_artefacts\Release\deadnoise_screenshot.exe
+  juce_graphics_Sheenbidi.c
+  deadnoise_host_test.vcxproj -> D:\a\Restricted-Wear\Restricted-Wear\build\deadnoise_host_test_artefacts\Release\deadnoise_host_test.exe
+  Building Custom Rule D:/a/Restricted-Wear/Restricted-Wear/DEADNOISE/CMakeLists.txt

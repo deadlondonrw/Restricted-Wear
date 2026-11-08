@@ -1,0 +1,161 @@
+DEADNOISE - TEST REPORT
+========================================================================
+Version            : 1.0.1
+Deliverable        : DEADNOISE-FL-STUDIO-WINDOWS-x64.zip
+SHA-256            : afddefce480f93bf26ebb2c31f6368d8ab7ffc9138c23174488fd81685d3f0f7
+Format             : VST3 (bundle), Windows x64 (AMD64), Release
+
+1. BUILD CONFIGURATION
+------------------------------------------------------------------------
+  commit: 7719e013575942e205359ebcb74e155b5287c8c4
+  version: 1.0.1
+  build machine: GitHub Actions windows-2022 (win22 20261101.353.1)
+  generator: Visual Studio 17 2022, platform x64, configuration Release
+  compiler: MSBuild version 17.14.60+43b635718 fo
+  runtime: MSVC static (/MT), no Visual C++ redistributable required
+  framework: JUCE 8.0.15 (VST3 SDK bundled with JUCE)
+  built: 2026-11-08T12:47:42Z
+
+2. ZIP CONTENTS (extract directly into D:\Plugins)
+------------------------------------------------------------------------
+  DEADNOISE.vst3/
+  DEADNOISE.vst3/Contents/
+  DEADNOISE.vst3/Contents/Resources/
+  DEADNOISE.vst3/Contents/Resources/moduleinfo.json                  1085 bytes
+  DEADNOISE.vst3/Contents/x86_64-win/
+  DEADNOISE.vst3/Contents/x86_64-win/DEADNOISE.vst3               5981696 bytes
+  ZIP integrity (CRC of every entry): PASS
+  Only one top-level folder "DEADNOISE.vst3": PASS
+  Result after extracting into D:\Plugins: D:\Plugins\DEADNOISE.vst3\Contents\x86_64-win\DEADNOISE.vst3
+
+3. RESULTS OF TESTS ACTUALLY PERFORMED
+------------------------------------------------------------------------
+  "build machine" = GitHub Actions Windows Server 2022 runner that compiled the plugin.
+  "clean machine" = a second, separate Windows runner (Microsoft Windows NT 10.0.26100.0; runner image: win25-vs2026 20261103.298.1)
+                    that received only the ZIP and the test tools, no build files.
+  All plugin tests ran on the plugin extracted from the ZIP into D:\Plugins.
+
+  Bundle / binary checks (ZIP extracted to D:\Plugins)
+      build machine : PASS (30 passed, 0 failed)
+      clean machine : PASS (30 passed, 0 failed)
+  Steinberg VST3 validator, extensive (-e)
+      build machine : PASS (537 passed, 0 failed)
+      clean machine : PASS (537 passed, 0 failed)
+  pluginval, strictness level 10
+      build machine : PASS
+      clean machine : PASS
+  VST3 host test (scan, instantiate, process, state, editor)
+      build machine : PASS (47 checks, 0 failures)
+      clean machine : PASS (47 checks, 0 failures)
+  Carla plugin discovery (independent, non-JUCE scanner)
+      build machine : DID NOT DETECT (see docs/ci log; informational only)
+      clean machine : DID NOT DETECT (see docs/ci log; informational only)
+  DSP test-suite (audio processing)
+      build machine : PASS (69 checks, 0 failures)
+
+  Detailed bundle / binary checks (build machine):
+    PASS  zip: single top-level folder DEADNOISE.vst3 (no extra nesting)  [entries: DEADNOISE.vst3/, DEADNOISE.vst3/Contents/, DEADNOISE.vst3/Contents/Resources/, DEADNOISE.vst3/Contents/Resources/moduleinfo.json, DEADNOISE.vst3/Contents/x86_64-win/, DEADNOISE.vst3/Contents/x86_64-win/DEADNOISE.vst3]
+    PASS  zip: forward-slash entry paths
+    PASS  zip: contains DEADNOISE.vst3/Contents/x86_64-win/DEADNOISE.vst3
+    PASS  zip: contains DEADNOISE.vst3/Contents/Resources/moduleinfo.json
+    PASS  extract (Expand-Archive) into D:\Plugins -> bundle folder D:\Plugins\DEADNOISE.vst3
+    PASS  bundle: Contents\x86_64-win\DEADNOISE.vst3 is a file
+    PASS  bundle: Contents\Resources\moduleinfo.json is a file
+    PASS  bundle: binary size matches the ZIP entry  [5981696 bytes]
+    PASS  extract with Windows tar.exe (second extractor)
+    PASS  PE: MZ header
+    PASS  PE: PE signature
+    PASS  PE: machine = x64 (AMD64, 0x8664)  [0x8664]
+    PASS  PE: optional header = PE32+ (64-bit)  [0x20B]
+    PASS  PE: image is a DLL  [characteristics 0x2022]
+    PASS  PE: not an empty/stub binary (> 1 MB)  [5981696 bytes]
+    PASS  LoadLibrary succeeds (every DLL dependency resolves on this machine)  [win32 error 0]
+    PASS  export GetPluginFactory
+    PASS  export InitDll
+    PASS  export ExitDll
+    PASS  moduleinfo: parses
+    PASS  moduleinfo: module name DEADNOISE  [DEADNOISE]
+    PASS  moduleinfo: version 1.0.1  [1.0.1]
+    PASS  moduleinfo: audio processor class registered  [ABCDEF019182FAEB44646E73446E7365]
+    PASS  moduleinfo: edit controller class registered  [ABCDEF011234ABCD44646E73446E7365]
+    PASS  moduleinfo: processor and controller have distinct 128-bit IDs
+    PASS  moduleinfo: effect category (Fx)  [Fx|Restoration]
+    PASS  dumpbin: machine (x64)
+    PASS  dumpbin: DLL
+    PASS  dumpbin: only Windows system DLLs imported (no VC++ runtime / no extra DLLs needed)  [imports: kernel32.dll, user32.dll, gdi32.dll, shell32.dll, ole32.dll, oleaut32.dll, comdlg32.dll, advapi32.dll, wininet.dll, ws2_32.dll, shlwapi.dll, winmm.dll, d2d1.dll, dxgi.dll, d3d11.dll, dcomp.dll, api-ms-win-shcore-scaling-l1-1-1.dll, imm32.dll, comctl32.dll, dwmapi.dll]
+    PASS  dumpbin: no debug CRT (Release build)
+    RESULT: 0 failed check(s)
+
+  Detailed bundle / binary checks (clean machine):
+    PASS  zip: single top-level folder DEADNOISE.vst3 (no extra nesting)  [entries: DEADNOISE.vst3/, DEADNOISE.vst3/Contents/, DEADNOISE.vst3/Contents/Resources/, DEADNOISE.vst3/Contents/Resources/moduleinfo.json, DEADNOISE.vst3/Contents/x86_64-win/, DEADNOISE.vst3/Contents/x86_64-win/DEADNOISE.vst3]
+    PASS  zip: forward-slash entry paths
+    PASS  zip: contains DEADNOISE.vst3/Contents/x86_64-win/DEADNOISE.vst3
+    PASS  zip: contains DEADNOISE.vst3/Contents/Resources/moduleinfo.json
+    PASS  extract (Expand-Archive) into D:\Plugins -> bundle folder D:\Plugins\DEADNOISE.vst3
+    PASS  bundle: Contents\x86_64-win\DEADNOISE.vst3 is a file
+    PASS  bundle: Contents\Resources\moduleinfo.json is a file
+    PASS  bundle: binary size matches the ZIP entry  [5981696 bytes]
+    PASS  extract with Windows tar.exe (second extractor)
+    PASS  PE: MZ header
+    PASS  PE: PE signature
+    PASS  PE: machine = x64 (AMD64, 0x8664)  [0x8664]
+    PASS  PE: optional header = PE32+ (64-bit)  [0x20B]
+    PASS  PE: image is a DLL  [characteristics 0x2022]
+    PASS  PE: not an empty/stub binary (> 1 MB)  [5981696 bytes]
+    PASS  LoadLibrary succeeds (every DLL dependency resolves on this machine)  [win32 error 0]
+    PASS  export GetPluginFactory
+    PASS  export InitDll
+    PASS  export ExitDll
+    PASS  moduleinfo: parses
+    PASS  moduleinfo: module name DEADNOISE  [DEADNOISE]
+    PASS  moduleinfo: version 1.0.1  [1.0.1]
+    PASS  moduleinfo: audio processor class registered  [ABCDEF019182FAEB44646E73446E7365]
+    PASS  moduleinfo: edit controller class registered  [ABCDEF011234ABCD44646E73446E7365]
+    PASS  moduleinfo: processor and controller have distinct 128-bit IDs
+    PASS  moduleinfo: effect category (Fx)  [Fx|Restoration]
+    PASS  dumpbin: machine (x64)
+    PASS  dumpbin: DLL
+    PASS  dumpbin: only Windows system DLLs imported (no VC++ runtime / no extra DLLs needed)  [imports: kernel32.dll, user32.dll, gdi32.dll, shell32.dll, ole32.dll, oleaut32.dll, comdlg32.dll, advapi32.dll, wininet.dll, ws2_32.dll, shlwapi.dll, winmm.dll, d2d1.dll, dxgi.dll, d3d11.dll, dcomp.dll, api-ms-win-shcore-scaling-l1-1-1.dll, imm32.dll, comctl32.dll, dwmapi.dll]
+    PASS  dumpbin: no debug CRT (Release build)
+    RESULT: 0 failed check(s)
+
+  DSP test-suite highlights (build machine):
+    44100 Hz  1 ch  latency 1024 smp (23.22 ms)  max |out - delayed in| = 8.94e-08
+    HF hiss   Natural   50 %   attenuation  -16.0 dB  (target -16.0 dB)
+    digital silence -> exact digital silence: yes
+    NaN/Inf burst: output finite = yes, still suppressing afterwards (-99.9 dB)
+    Natural  speech level change  -0.00 dB   SDR in  20.0 dB -> out  34.4 dB
+    continuous talking during learning -> rejected (correct)
+    clean hiss: worst band error vs reference (dB)            0.383
+    max difference fixed 512 vs random blocks                 0.000
+    44100 Hz stereo, 256-sample blocks: 1.88 % of one CPU core (real-time factor 0.0188)
+
+  Carla discovery output (build machine):
+
+4. TESTS THAT COULD NOT BE PERFORMED
+------------------------------------------------------------------------
+  * FL Studio was NOT available. The plugin has NOT been scanned or loaded in
+    FL Studio itself. FL Studio compatibility is therefore NOT verified. It
+    is expected, because the plugin passes Steinberg's reference validator,
+    pluginval and a JUCE-based VST3 host, but only a scan in your FL Studio can confirm it.
+  * No test on a Windows 10/11 desktop installation. The tests ran on
+    Windows Server 2022 and 2025 (the same Windows code base and system DLLs).
+  * No test with your USB microphone or your audio driver; audio quality was
+    measured with synthetic hiss and recorded speech (see docs/TEST_REPORT.md).
+  * Not tested with Windows Smart App Control / third-party antivirus.
+
+5. KNOWN LIMITATIONS
+------------------------------------------------------------------------
+  * The binary is not code-signed. Windows may mark the downloaded ZIP as
+    coming from the internet; unblock it before extracting (INSTALLATION.txt).
+    With Windows 11 Smart App Control enabled, unsigned plugins can be
+    blocked from loading.
+  * Latency 1024 samples at 44.1/48 kHz (23.2 / 21.3 ms), 2048 samples at
+    88.2/96 kHz, reported to the host for delay compensation.
+  * Built for stationary noise (constant microphone hiss, hum, fan).
+    Transient noises (keyboard, clicks) are not removed.
+  * Maximum mode can dull quiet "s" sounds when the hiss is loud; use Natural
+    or raise Voice Preservation.
+  * Mono and stereo only. Stereo channels share one gain.
+
+OVERALL (all mandatory tests above): PASS

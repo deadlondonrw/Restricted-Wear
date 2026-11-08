@@ -1,4 +1,8 @@
-commit: 4e9138b1ea9e11eb138983fad6cd881252fcd9d4
-runner: Windows win22 20261101.353.1
-compiler: cmake version 3.31.6, MSVC (Visual Studio 17 2022), /MT static runtime
-built: 2026-11-07T02:42:44Z
+commit: 7719e013575942e205359ebcb74e155b5287c8c4
+version: 1.0.1
+build machine: GitHub Actions windows-2022 (win22 20261101.353.1)
+generator: Visual Studio 17 2022, platform x64, configuration Release
+compiler: MSBuild version 17.14.60+43b635718 fo
+runtime: MSVC static (/MT), no Visual C++ redistributable required
+framework: JUCE 8.0.15 (VST3 SDK bundled with JUCE)
+built: 2026-11-08T12:47:42Z

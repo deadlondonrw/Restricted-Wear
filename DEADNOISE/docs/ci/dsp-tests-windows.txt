@@ -74,9 +74,9 @@ DEADNOISE DSP test suite
     output finite: yes, peak 69.65 (input peak x gains bounded)
 
 [CPU cost]
-     44100 Hz stereo, 256-sample blocks: 1.16 % of one CPU core (real-time factor 0.0116)
-     48000 Hz stereo, 256-sample blocks: 1.28 % of one CPU core (real-time factor 0.0128)
-     96000 Hz stereo, 256-sample blocks: 2.57 % of one CPU core (real-time factor 0.0257)
+     44100 Hz stereo, 256-sample blocks: 1.88 % of one CPU core (real-time factor 0.0188)
+     48000 Hz stereo, 256-sample blocks: 2.04 % of one CPU core (real-time factor 0.0204)
+     96000 Hz stereo, 256-sample blocks: 4.06 % of one CPU core (real-time factor 0.0406)
 
 69 checks, 0 failures
 ALL TESTS PASSED

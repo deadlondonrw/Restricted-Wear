@@ -1,0 +1,1 @@
+[31m[carla] Carla assertion failure: "pluginFormat->fileMightContainThisPluginType(filename)" in file carla-discovery.cpp, line 2004[0m
