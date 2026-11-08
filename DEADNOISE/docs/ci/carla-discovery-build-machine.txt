@@ -1,1 +1,34 @@
-[31m[carla] Carla assertion failure: "pluginFormat->fileMightContainThisPluginType(filename)" in file carla-discovery.cpp, line 2004[0m
+discovery tool: D:\a\_temp\carla\Carla-2.5.10-win64\Carla\carla-discovery-native.exe
+=== carla-discovery-native vst3 D:\Plugins\DEADNOISE.vst3
+[carla] Carla assertion failure: "pluginFormat->fileMightContainThisPluginType(filename)" in file carla-discovery.cpp, line 2004
+
+=== carla-discovery-native vst3 D:\Plugins\DEADNOISE.vst3\Contents\x86_64-win\DEADNOISE.vst3
+
+carla-discovery::init::-----------
+
+carla-discovery::build::4
+
+carla-discovery::hints::8
+
+carla-discovery::category::none
+
+carla-discovery::name::DEADNOISE
+
+carla-discovery::label::DEADNOISE
+
+carla-discovery::maker::DEADNOISE
+
+carla-discovery::uniqueId::-620763940
+
+carla-discovery::audio.ins::2
+
+carla-discovery::audio.outs::2
+
+carla-discovery::midi.ins::0
+
+carla-discovery::midi.outs::0
+
+carla-discovery::parameters.ins::11
+
+carla-discovery::end::------------
+

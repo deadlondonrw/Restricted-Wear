@@ -2,19 +2,19 @@ DEADNOISE - TEST REPORT
 ========================================================================
 Version            : 1.0.1
 Deliverable        : DEADNOISE-FL-STUDIO-WINDOWS-x64.zip
-SHA-256            : afddefce480f93bf26ebb2c31f6368d8ab7ffc9138c23174488fd81685d3f0f7
+SHA-256            : 9545dae491bb9ec225c59fc1b49c9fd28ea569cb25de315bd2da966577ea8a97
 Format             : VST3 (bundle), Windows x64 (AMD64), Release
 
 1. BUILD CONFIGURATION
 ------------------------------------------------------------------------
-  commit: 7719e013575942e205359ebcb74e155b5287c8c4
+  commit: a07ead42f87a1c07c224030594bf19df71334090
   version: 1.0.1
   build machine: GitHub Actions windows-2022 (win22 20261101.353.1)
   generator: Visual Studio 17 2022, platform x64, configuration Release
   compiler: MSBuild version 17.14.60+43b635718 fo
   runtime: MSVC static (/MT), no Visual C++ redistributable required
   framework: JUCE 8.0.15 (VST3 SDK bundled with JUCE)
-  built: 2026-11-08T12:47:42Z
+  built: 2026-11-08T12:56:46Z
 
 2. ZIP CONTENTS (extract directly into D:\Plugins)
 ------------------------------------------------------------------------
@@ -48,8 +48,8 @@ Format             : VST3 (bundle), Windows x64 (AMD64), Release
       build machine : PASS (47 checks, 0 failures)
       clean machine : PASS (47 checks, 0 failures)
   Carla plugin discovery (independent, non-JUCE scanner)
-      build machine : DID NOT DETECT (see docs/ci log; informational only)
-      clean machine : DID NOT DETECT (see docs/ci log; informational only)
+      build machine : PASS (plugin discovered)
+      clean machine : PASS (plugin discovered)
   DSP test-suite (audio processing)
       build machine : PASS (69 checks, 0 failures)
 
@@ -128,16 +128,27 @@ Format             : VST3 (bundle), Windows x64 (AMD64), Release
     continuous talking during learning -> rejected (correct)
     clean hiss: worst band error vs reference (dB)            0.383
     max difference fixed 512 vs random blocks                 0.000
-    44100 Hz stereo, 256-sample blocks: 1.88 % of one CPU core (real-time factor 0.0188)
+    44100 Hz stereo, 256-sample blocks: 1.50 % of one CPU core (real-time factor 0.0150)
 
   Carla discovery output (build machine):
+    === carla-discovery-native vst3 D:\Plugins\DEADNOISE.vst3
+    [carla] Carla assertion failure: "pluginFormat->fileMightContainThisPluginType(filename)" in file carla-discovery.cpp, line 2004
+    === carla-discovery-native vst3 D:\Plugins\DEADNOISE.vst3\Contents\x86_64-win\DEADNOISE.vst3
+    carla-discovery::build::4
+    carla-discovery::hints::8
+    carla-discovery::category::none
+    carla-discovery::name::DEADNOISE
+    carla-discovery::label::DEADNOISE
+    carla-discovery::maker::DEADNOISE
+    carla-discovery::audio.ins::2
+    carla-discovery::audio.outs::2
 
 4. TESTS THAT COULD NOT BE PERFORMED
 ------------------------------------------------------------------------
   * FL Studio was NOT available. The plugin has NOT been scanned or loaded in
     FL Studio itself. FL Studio compatibility is therefore NOT verified. It
     is expected, because the plugin passes Steinberg's reference validator,
-    pluginval and a JUCE-based VST3 host, but only a scan in your FL Studio can confirm it.
+    pluginval and a JUCE-based VST3 host and Carla's plugin scanner, but only a scan in your FL Studio can confirm it.
   * No test on a Windows 10/11 desktop installation. The tests ran on
     Windows Server 2022 and 2025 (the same Windows code base and system DLLs).
   * No test with your USB microphone or your audio driver; audio quality was

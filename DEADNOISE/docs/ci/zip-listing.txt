@@ -2,22 +2,22 @@
 7-Zip 26.05 (x64) : Copyright (c) 1999-2026 Igor Pavlov : 2026-10-21
 
 Scanning the drive for archives:
-1 file, 2560386 bytes (2501 KiB)
+1 file, 2560384 bytes (2501 KiB)
 
 Listing archive: dist\DEADNOISE-FL-STUDIO-WINDOWS-x64.zip
 
 --
 Path = dist\DEADNOISE-FL-STUDIO-WINDOWS-x64.zip
 Type = zip
-Physical Size = 2560386
+Physical Size = 2560384
 
    Date      Time    Attr         Size   Compressed  Name
 ------------------- ----- ------------ ------------  ------------------------
-2026-11-08 12:47:41 D....            0            0  DEADNOISE.vst3
-2026-11-08 12:47:41 D....            0            0  DEADNOISE.vst3\Contents
-2026-11-08 12:47:41 D....            0            0  DEADNOISE.vst3\Contents\Resources
-2026-11-08 12:47:41 ....A         1085          332  DEADNOISE.vst3\Contents\Resources\moduleinfo.json
-2026-11-08 12:47:41 D....            0            0  DEADNOISE.vst3\Contents\x86_64-win
-2026-11-08 12:47:41 ....A      5981696      2558948  DEADNOISE.vst3\Contents\x86_64-win\DEADNOISE.vst3
+2026-11-08 12:56:46 D....            0            0  DEADNOISE.vst3
+2026-11-08 12:56:46 D....            0            0  DEADNOISE.vst3\Contents
+2026-11-08 12:56:46 D....            0            0  DEADNOISE.vst3\Contents\Resources
+2026-11-08 12:56:46 ....A         1085          332  DEADNOISE.vst3\Contents\Resources\moduleinfo.json
+2026-11-08 12:56:46 D....            0            0  DEADNOISE.vst3\Contents\x86_64-win
+2026-11-08 12:56:46 ....A      5981696      2558946  DEADNOISE.vst3\Contents\x86_64-win\DEADNOISE.vst3
 ------------------- ----- ------------ ------------  ------------------------
-2026-11-08 12:47:41            5982781      2559280  2 files, 4 folders
+2026-11-08 12:56:46            5982781      2559278  2 files, 4 folders

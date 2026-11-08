@@ -1,8 +1,8 @@
-commit: 7719e013575942e205359ebcb74e155b5287c8c4
+commit: a07ead42f87a1c07c224030594bf19df71334090
 version: 1.0.1
 build machine: GitHub Actions windows-2022 (win22 20261101.353.1)
 generator: Visual Studio 17 2022, platform x64, configuration Release
 compiler: MSBuild version 17.14.60+43b635718 fo
 runtime: MSVC static (/MT), no Visual C++ redistributable required
 framework: JUCE 8.0.15 (VST3 SDK bundled with JUCE)
-built: 2026-11-08T12:47:42Z
+built: 2026-11-08T12:56:46Z
