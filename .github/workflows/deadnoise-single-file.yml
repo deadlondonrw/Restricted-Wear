@@ -1,0 +1,77 @@
+name: DEADNOISE single-file VST3
+
+# Takes the binary from the published release ZIP (no rebuild), installs it as a
+# single-file VST3 (D:\Plugins\DEADNOISE.vst3, no bundle folder), tests it, and
+# attaches DEADNOISE-FL-STUDIO-WINDOWS-x64-SINGLE-FILE.zip to the same release.
+on:
+  push:
+    branches: [ 'claude/**' ]
+    paths:
+      - '.github/workflows/deadnoise-single-file.yml'
+
+permissions:
+  contents: write
+
+env:
+  TAG: deadnoise-v1.0.1
+  DLL_SHA256: DACAB882F85EE14865A1B91CC47EA1A163034D98981B9A6D5B02A627AF8090FB
+
+jobs:
+  single-file:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Take the binary from the released ZIP and install it as one file
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path ci-logs, dist | Out-Null
+          Invoke-WebRequest -Uri "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$env:TAG/DEADNOISE-FL-STUDIO-WINDOWS-x64.zip" -OutFile "$env:RUNNER_TEMP\bundle.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\bundle.zip" -DestinationPath "$env:RUNNER_TEMP\bundle" -Force
+          New-Item -ItemType Directory -Force -Path D:\Plugins | Out-Null
+          Copy-Item "$env:RUNNER_TEMP\bundle\DEADNOISE.vst3\Contents\x86_64-win\DEADNOISE.vst3" D:\Plugins\DEADNOISE.vst3
+          $item = Get-Item D:\Plugins\DEADNOISE.vst3
+          $hash = (Get-FileHash -Algorithm SHA256 $item.FullName).Hash
+          $log = 'ci-logs/single-file-checks.txt'
+          "D:\Plugins\DEADNOISE.vst3 is a file: $(-not $item.PSIsContainer), $($item.Length) bytes" | Tee-Object -FilePath $log
+          "SHA-256 $hash (released binary $env:DLL_SHA256): $(if ($hash -eq $env:DLL_SHA256) { 'MATCH' } else { 'MISMATCH' })" | Tee-Object -FilePath $log -Append
+          if ($item.PSIsContainer -or $hash -ne $env:DLL_SHA256) { exit 1 }
+          Add-Type -Namespace DnSf -Name Native -MemberDefinition @'
+          [DllImport("kernel32.dll", SetLastError=true, CharSet=CharSet.Unicode)] public static extern IntPtr LoadLibraryExW(string path, IntPtr file, uint flags);
+          [DllImport("kernel32.dll", SetLastError=true, CharSet=CharSet.Ansi)] public static extern IntPtr GetProcAddress(IntPtr module, string name);
+          '@
+          $h = [DnSf.Native]::LoadLibraryExW('D:\Plugins\DEADNOISE.vst3', [IntPtr]::Zero, 0)
+          $ok = ($h -ne [IntPtr]::Zero) -and ([DnSf.Native]::GetProcAddress($h, 'GetPluginFactory') -ne [IntPtr]::Zero)
+          "LoadLibrary + GetPluginFactory: $(if ($ok) { 'PASS' } else { 'FAIL' })" | Tee-Object -FilePath $log -Append
+          if (-not $ok) { exit 1 }
+          Push-Location D:\Plugins
+          tar.exe -a -cf "$env:GITHUB_WORKSPACE\dist\DEADNOISE-FL-STUDIO-WINDOWS-x64-SINGLE-FILE.zip" DEADNOISE.vst3
+          Pop-Location
+          tar.exe -tf dist\DEADNOISE-FL-STUDIO-WINDOWS-x64-SINGLE-FILE.zip | Tee-Object -FilePath $log -Append
+
+      - name: pluginval (strictness 10) on the single file
+        shell: bash
+        run: |
+          set -o pipefail
+          curl -sSL -o "$RUNNER_TEMP/pluginval.zip" https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip
+          7z x -y -o"$RUNNER_TEMP/pluginval" "$RUNNER_TEMP/pluginval.zip" > /dev/null
+          "$RUNNER_TEMP/pluginval/pluginval.exe" --strictness-level 10 --validate-in-process --timeout-ms 900000 \
+            'D:\Plugins\DEADNOISE.vst3' | tee ci-logs/single-file-pluginval.txt
+          tail -1 ci-logs/single-file-pluginval.txt | grep -q SUCCESS
+
+      - name: Attach to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp ci-logs/single-file-checks.txt dist/SINGLE-FILE-TEST.txt
+          { echo; echo "pluginval strictness 10:"; tail -3 ci-logs/single-file-pluginval.txt; } >> dist/SINGLE-FILE-TEST.txt
+          gh release upload "$TAG" dist/DEADNOISE-FL-STUDIO-WINDOWS-x64-SINGLE-FILE.zip dist/SINGLE-FILE-TEST.txt --clobber --repo "$GITHUB_REPOSITORY"
+          echo "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/DEADNOISE-FL-STUDIO-WINDOWS-x64-SINGLE-FILE.zip"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: single-file
+          path: |
+            dist/
+            ci-logs/
