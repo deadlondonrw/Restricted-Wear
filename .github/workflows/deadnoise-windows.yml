@@ -1,8 +1,12 @@
 name: DEADNOISE Windows x64 build
 
-# Builds the DEADNOISE VST3 with MSVC (JUCE's supported Windows compiler),
-# runs the DSP test-suite, Steinberg's VST3 validator and pluginval on a real
-# Windows machine, then commits the binary + logs back to the branch.
+# 1. build        MSVC Release build of the VST3, packaged as
+#                 DEADNOISE-FL-STUDIO-WINDOWS-x64.zip, extracted to D:\Plugins
+#                 and tested there (validator, pluginval, VST3 host, Carla scan).
+# 2. clean-machine A second, different Windows machine that only gets the ZIP and
+#                 the test tools (no build tree) and repeats the tests.
+# 3. publish      Writes TEST_REPORT.txt from the real logs, commits the
+#                 deliverables to DEADNOISE/bin and creates a GitHub Release.
 
 on:
   push:
@@ -11,6 +15,7 @@ on:
       - 'DEADNOISE/src/**'
       - 'DEADNOISE/tests/**'
       - 'DEADNOISE/tools/**'
+      - 'DEADNOISE/packaging/**'
       - 'DEADNOISE/CMakeLists.txt'
       - '.github/workflows/deadnoise-windows.yml'
   workflow_dispatch:
@@ -22,96 +27,243 @@ concurrency:
   group: deadnoise-windows-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  ZIP_NAME: DEADNOISE-FL-STUDIO-WINDOWS-x64.zip
+  PLUGIN_DIR: 'D:\Plugins'
+
 jobs:
   build:
     runs-on: windows-2022
-    timeout-minutes: 60
+    timeout-minutes: 75
     defaults:
       run:
         shell: bash
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+
+      - id: ver
+        name: Read version
+        run: echo "version=$(sed -n 's/^project(DEADNOISE VERSION \([0-9.]*\).*/\1/p' DEADNOISE/CMakeLists.txt)" >> "$GITHUB_OUTPUT"
 
       - name: Fetch JUCE 8.0.15
         run: git clone --depth 1 --branch 8.0.15 https://github.com/juce-framework/JUCE.git "$RUNNER_TEMP/JUCE"
 
-      - name: Configure (MSVC, static runtime)
+      - name: Configure (Visual Studio 2022, MSVC, x64, static runtime)
         run: >
           cmake -S DEADNOISE -B build -G "Visual Studio 17 2022" -A x64
           -DDEADNOISE_JUCE_DIR="$RUNNER_TEMP/JUCE"
           -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
 
-      - name: Build
-        run: cmake --build build --config Release --parallel 4
+      - name: Build (Release)
+        run: |
+          set -o pipefail
+          mkdir -p ci-logs
+          cmake --build build --config Release --parallel 4 2>&1 | tee ci-logs/build-windows.txt | tail -30
+
+      - name: Package the ZIP (top level = DEADNOISE.vst3)
+        run: |
+          set -e
+          mkdir -p dist/ziproot
+          cp -r build/DEADNOISE_artefacts/Release/VST3/DEADNOISE.vst3 dist/ziproot/
+          (cd dist/ziproot && 7z a -tzip "../$ZIP_NAME" DEADNOISE.vst3 > /dev/null)
+          7z l "dist/$ZIP_NAME" | tee ci-logs/zip-listing.txt
+          cp DEADNOISE/packaging/verify-bundle.ps1 dist/
+          {
+            echo "commit: $GITHUB_SHA"
+            echo "version: ${{ steps.ver.outputs.version }}"
+            echo "build machine: GitHub Actions windows-2022 ($ImageOS $ImageVersion)"
+            echo "generator: Visual Studio 17 2022, platform x64, configuration Release"
+            echo "compiler: $(grep -m1 -o 'Microsoft (R) C/C++[^\r]*\|MSBuild version [^\r]*' ci-logs/build-windows.txt || true)"
+            echo "runtime: MSVC static (/MT), no Visual C++ redistributable required"
+            echo "framework: JUCE 8.0.15 (VST3 SDK bundled with JUCE)"
+            echo "built: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } > ci-logs/build-info.txt
+          cat ci-logs/build-info.txt
+
+      - name: Verify ZIP + bundle + binary, extracted to D:\Plugins
+        shell: pwsh
+        run: |
+          & dist/verify-bundle.ps1 -Zip "dist/$env:ZIP_NAME" -Dest $env:PLUGIN_DIR -Log ci-logs/bundle-checks-build-machine.txt -ExpectedVersion '${{ steps.ver.outputs.version }}'
+          if ($LASTEXITCODE -ne 0) { exit 1 }
 
       - name: DSP test-suite (native Windows)
         run: |
           set -o pipefail
-          mkdir -p ci-logs
           build/Release/deadnoise_tests.exe | tee ci-logs/dsp-tests-windows.txt
 
-      - name: Build Steinberg VST3 validator
+      - name: Build Steinberg VST3 validator (standalone, static CRT)
         run: |
           git clone --depth 1 --recursive --shallow-submodules https://github.com/steinbergmedia/vst3sdk.git "$RUNNER_TEMP/vst3sdk"
           cmake -S "$RUNNER_TEMP/vst3sdk" -B "$RUNNER_TEMP/vst3sdk-build" -G "Visual Studio 17 2022" -A x64 \
-                -DSMTG_ENABLE_VST3_PLUGIN_EXAMPLES=OFF -DSMTG_ENABLE_VSTGUI_SUPPORT=OFF -DSMTG_CREATE_PLUGIN_LINK=OFF
+                -DSMTG_ENABLE_VST3_PLUGIN_EXAMPLES=OFF -DSMTG_ENABLE_VSTGUI_SUPPORT=OFF -DSMTG_CREATE_PLUGIN_LINK=OFF \
+                -DSMTG_USE_STATIC_CRT=ON
           cmake --build "$RUNNER_TEMP/vst3sdk-build" --config Release --target validator --parallel 4
+          mkdir -p dist/tools
+          cp "$RUNNER_TEMP/vst3sdk-build/bin/Release/validator.exe" dist/tools/
+          cp build/deadnoise_host_test_artefacts/Release/deadnoise_host_test.exe dist/tools/
 
-      - name: VST3 validator (extensive)
+      - name: VST3 validator (extensive) on D:\Plugins\DEADNOISE.vst3
         run: |
           set -o pipefail
-          "$RUNNER_TEMP/vst3sdk-build/bin/Release/validator.exe" -e build/DEADNOISE_artefacts/Release/VST3/DEADNOISE.vst3 \
-            | tee ci-logs/vst3-validator-windows.txt
+          dist/tools/validator.exe -e 'D:\Plugins\DEADNOISE.vst3' | tee ci-logs/vst3-validator-build-machine.txt
 
-      - name: pluginval (strictness 10)
+      - name: pluginval (strictness 10) on D:\Plugins\DEADNOISE.vst3
         run: |
           set -o pipefail
-          curl -sSL -o pluginval.zip https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip
-          7z x -y pluginval.zip > /dev/null
-          ./pluginval.exe --strictness-level 10 --validate-in-process --timeout-ms 900000 \
-            --output-dir ci-logs build/DEADNOISE_artefacts/Release/VST3/DEADNOISE.vst3 \
-            | tee ci-logs/pluginval-windows.txt
+          curl -sSL -o "$RUNNER_TEMP/pluginval.zip" https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip
+          7z x -y -o"$RUNNER_TEMP/pluginval" "$RUNNER_TEMP/pluginval.zip" > /dev/null
+          "$RUNNER_TEMP/pluginval/pluginval.exe" --strictness-level 10 --validate-in-process --timeout-ms 900000 \
+            'D:\Plugins\DEADNOISE.vst3' | tee ci-logs/pluginval-build-machine.txt
 
-      - name: Host-level test (loads the .vst3 through VST3 hosting, like a DAW)
+      - name: VST3 host test (JUCE hosting) on D:\Plugins\DEADNOISE.vst3
         run: |
           set -o pipefail
-          build/deadnoise_host_test_artefacts/Release/deadnoise_host_test.exe build/DEADNOISE_artefacts/Release/VST3/DEADNOISE.vst3 \
-            | tee ci-logs/host-test-windows.txt
+          dist/tools/deadnoise_host_test.exe 'D:\Plugins\DEADNOISE.vst3' | tee ci-logs/host-test-build-machine.txt
+
+      - name: Independent scan with Carla's plugin discovery (non-JUCE host)
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          curl -sSL -o "$RUNNER_TEMP/carla.zip" https://github.com/falkTX/Carla/releases/download/v2.5.10/Carla-2.5.10-win64.zip
+          7z x -y -o"$RUNNER_TEMP/carla" "$RUNNER_TEMP/carla.zip" > /dev/null
+          CD=$(find "$RUNNER_TEMP/carla" -iname 'carla-discovery-native.exe' | head -1)
+          echo "discovery tool: $CD"
+          timeout 300 "$CD" vst3 'D:\Plugins\DEADNOISE.vst3' 2>&1 | tee ci-logs/carla-discovery-build-machine.txt
+          grep -q 'carla-discovery::name::DEADNOISE' ci-logs/carla-discovery-build-machine.txt
 
       - name: Editor screenshot (rendered on Windows)
         run: build/deadnoise_screenshot_artefacts/Release/deadnoise_screenshot.exe ci-logs/deadnoise-ui-windows.png
 
-      - name: Package
-        run: |
-          rm -rf DEADNOISE/bin && mkdir -p DEADNOISE/bin DEADNOISE/docs/ci
-          cp -r build/DEADNOISE_artefacts/Release/VST3/DEADNOISE.vst3 DEADNOISE/bin/
-          (cd DEADNOISE/bin && 7z a -tzip DEADNOISE-windows-x64.zip DEADNOISE.vst3 > /dev/null)
-          (cd DEADNOISE/bin && sha256sum DEADNOISE-windows-x64.zip DEADNOISE.vst3/Contents/x86_64-win/DEADNOISE.vst3 > SHA256SUMS.txt)
-          cp ci-logs/dsp-tests-windows.txt ci-logs/vst3-validator-windows.txt ci-logs/pluginval-windows.txt \
-             ci-logs/host-test-windows.txt ci-logs/deadnoise-ui-windows.png DEADNOISE/docs/ci/
-          {
-            echo "commit: $GITHUB_SHA"
-            echo "runner: $RUNNER_OS $ImageOS $ImageVersion"
-            echo "compiler: $(cmake --version | head -1), MSVC (Visual Studio 17 2022), /MT static runtime"
-            echo "built: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          } > DEADNOISE/docs/ci/build-info.txt
-
       - uses: actions/upload-artifact@v4
         with:
-          name: DEADNOISE-windows-x64
-          path: |
-            DEADNOISE/bin
-            ci-logs
+          name: dist
+          path: dist/
+          if-no-files-found: error
 
-      - name: Commit binary back to the branch
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs-build-machine
+          path: ci-logs/
+
+  clean-machine:
+    needs: build
+    runs-on: windows-2025
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Verify ZIP + bundle + binary, extracted to D:\Plugins
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path ci-logs | Out-Null
+          [Environment]::OSVersion.VersionString | Out-File ci-logs/clean-machine-os.txt
+          & dist/verify-bundle.ps1 -Zip "dist/$env:ZIP_NAME" -Dest $env:PLUGIN_DIR -Log ci-logs/bundle-checks-clean-machine.txt -ExpectedVersion '${{ needs.build.outputs.version }}'
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: VST3 validator (extensive)
+        run: |
+          set -o pipefail
+          echo "runner image: $ImageOS $ImageVersion" >> ci-logs/clean-machine-os.txt
+          dist/tools/validator.exe -e 'D:\Plugins\DEADNOISE.vst3' | tee ci-logs/vst3-validator-clean-machine.txt
+
+      - name: pluginval (strictness 10)
+        run: |
+          set -o pipefail
+          curl -sSL -o "$RUNNER_TEMP/pluginval.zip" https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip
+          7z x -y -o"$RUNNER_TEMP/pluginval" "$RUNNER_TEMP/pluginval.zip" > /dev/null
+          "$RUNNER_TEMP/pluginval/pluginval.exe" --strictness-level 10 --validate-in-process --timeout-ms 900000 \
+            'D:\Plugins\DEADNOISE.vst3' | tee ci-logs/pluginval-clean-machine.txt
+
+      - name: VST3 host test
+        run: |
+          set -o pipefail
+          dist/tools/deadnoise_host_test.exe 'D:\Plugins\DEADNOISE.vst3' | tee ci-logs/host-test-clean-machine.txt
+
+      - name: Independent scan with Carla's plugin discovery
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          curl -sSL -o "$RUNNER_TEMP/carla.zip" https://github.com/falkTX/Carla/releases/download/v2.5.10/Carla-2.5.10-win64.zip
+          7z x -y -o"$RUNNER_TEMP/carla" "$RUNNER_TEMP/carla.zip" > /dev/null
+          CD=$(find "$RUNNER_TEMP/carla" -iname 'carla-discovery-native.exe' | head -1)
+          timeout 300 "$CD" vst3 'D:\Plugins\DEADNOISE.vst3' 2>&1 | tee ci-logs/carla-discovery-clean-machine.txt
+          grep -q 'carla-discovery::name::DEADNOISE' ci-logs/carla-discovery-clean-machine.txt
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs-clean-machine
+          path: ci-logs/
+
+  publish:
+    needs: [ build, clean-machine ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Assemble deliverables + TEST_REPORT.txt
+        run: |
+          set -e
+          VERSION='${{ needs.build.outputs.version }}'
+          git rm -r -q --ignore-unmatch DEADNOISE/bin DEADNOISE/docs/ci
+          rm -rf DEADNOISE/bin DEADNOISE/docs/ci
+          mkdir -p DEADNOISE/bin DEADNOISE/docs/ci
+          cp "artifacts/dist/$ZIP_NAME" DEADNOISE/bin/
+          cp DEADNOISE/packaging/INSTALLATION.txt DEADNOISE/bin/
+          cp artifacts/logs-build-machine/* artifacts/logs-clean-machine/* DEADNOISE/docs/ci/
+          python3 DEADNOISE/packaging/make_test_report.py \
+            --logs DEADNOISE/docs/ci --zip "DEADNOISE/bin/$ZIP_NAME" --version "$VERSION" \
+            --out DEADNOISE/bin/TEST_REPORT.txt
+          (cd DEADNOISE/bin && sha256sum "$ZIP_NAME" INSTALLATION.txt TEST_REPORT.txt > SHA256SUMS.txt)
+          cat DEADNOISE/bin/TEST_REPORT.txt
+
+      - name: Commit deliverables to the branch
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A DEADNOISE/bin DEADNOISE/docs/ci
           if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
-          git commit -m "CI: Windows x64 MSVC build of DEADNOISE.vst3 (${GITHUB_SHA::7})"
+          git commit -m "CI: DEADNOISE ${{ needs.build.outputs.version }} Windows x64 VST3 for FL Studio (${GITHUB_SHA::7})"
           for i in 1 2 3 4; do
             git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
             sleep $((i * 5))
           done
           exit 1
+
+      - name: GitHub Release with the ZIP
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="deadnoise-v${{ needs.build.outputs.version }}"
+          cd DEADNOISE/bin
+          {
+            echo "DEADNOISE ${{ needs.build.outputs.version }}, Windows x64 VST3 (MSVC Release build)."
+            echo
+            echo "Download **$ZIP_NAME** and extract it into your plugin folder (e.g. D:\\Plugins)."
+            echo "You get D:\\Plugins\\DEADNOISE.vst3. Then FL Studio: Options > Manage plugins > Find installed plugins."
+            echo
+            echo "See INSTALLATION.txt and TEST_REPORT.txt (also attached)."
+          } > "$RUNNER_TEMP/notes.md"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            gh release upload "$TAG" "$ZIP_NAME" INSTALLATION.txt TEST_REPORT.txt SHA256SUMS.txt --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$ZIP_NAME" INSTALLATION.txt TEST_REPORT.txt SHA256SUMS.txt \
+              --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+              --title "DEADNOISE ${{ needs.build.outputs.version }} (Windows x64 VST3 for FL Studio)" \
+              --notes-file "$RUNNER_TEMP/notes.md" --latest=false
+          fi
+          echo "https://github.com/$GITHUB_REPOSITORY/releases/download/$TAG/$ZIP_NAME"

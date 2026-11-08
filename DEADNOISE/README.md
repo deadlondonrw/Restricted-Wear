@@ -10,35 +10,19 @@ keeping the voice natural, continuously, while you speak (it is not a gate).
 
 ## 1. Install
 
-The compiled plugin is in [`bin/`](bin):
+Download **`DEADNOISE-FL-STUDIO-WINDOWS-x64.zip`**, either from
+[`bin/`](bin) or from the GitHub Release `deadnoise-v1.0.1`.
+[`bin/INSTALLATION.txt`](bin/INSTALLATION.txt) has the step-by-step guide and
+[`bin/TEST_REPORT.txt`](bin/TEST_REPORT.txt) the test results of that exact file.
 
-| File | What it is |
-|---|---|
-| `bin/DEADNOISE-windows-x64.zip` | the plugin bundle, zipped |
-| `bin/DEADNOISE.vst3/` | the same bundle, unzipped |
-| `bin/SHA256SUMS.txt` | checksums |
+The ZIP contains only the VST3 bundle `DEADNOISE.vst3/`. Extract it directly into
+your plugin folder (for example `D:\Plugins`), which gives
+`D:\Plugins\DEADNOISE.vst3\Contents\x86_64-win\DEADNOISE.vst3`. Unblock the
+ZIP first (right-click, Properties, Unblock). Then in FL Studio go to
+**Options, Manage plugins, Find installed plugins** with *Verify plugins* ticked.
 
-It is built by MSVC (Visual Studio 2022, static runtime) on a GitHub Windows
-runner, see [Build](#7-build-from-source). No Visual C++ redistributable or other
-DLLs are needed.
-
-1. Download `DEADNOISE-windows-x64.zip`. If Windows shows it as downloaded from
-   the internet: right-click → **Properties** → tick **Unblock** → OK.
-2. Extract it. You get a folder named **`DEADNOISE.vst3`** (a VST3 *bundle*).
-3. Copy that whole folder to
-
-   ```
-   C:\Program Files\Common Files\VST3\
-   ```
-
-   so that this file exists:
-   `C:\Program Files\Common Files\VST3\DEADNOISE.vst3\Contents\x86_64-win\DEADNOISE.vst3`
-4. FL Studio: **Options → Manage plugins**, make sure the VST3 folder above is in
-   the search paths, tick **Verify plugins**, click **Find installed plugins**.
-   DEADNOISE appears under *Effects* (vendor "DEADNOISE"). Star it to make it
-   show up in the mixer slot menu.
-
-To uninstall, delete the `DEADNOISE.vst3` folder.
+It's built with MSVC (Visual Studio 2022, Release, static runtime) on a GitHub
+Windows runner. It needs no Visual C++ redistributable and no other DLLs.
 
 ## 2. Use it on your microphone (FL Studio)
 

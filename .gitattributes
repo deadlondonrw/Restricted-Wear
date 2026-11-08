@@ -1,0 +1,5 @@
+# DEADNOISE deliverables must stay byte-identical to what CI built and tested
+DEADNOISE/bin/** -text
+*.zip binary
+*.vst3 binary
+DEADNOISE/packaging/*.txt text eol=crlf

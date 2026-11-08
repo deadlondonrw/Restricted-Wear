@@ -1,0 +1,74 @@
+DEADNOISE - INSTALLATION (Windows x64, FL Studio)
+=================================================
+
+What you have
+-------------
+DEADNOISE-FL-STUDIO-WINDOWS-x64.zip contains exactly one folder:
+
+    DEADNOISE.vst3\
+        Contents\
+            x86_64-win\DEADNOISE.vst3      <- the 64-bit plugin binary
+            Resources\moduleinfo.json      <- VST3 metadata
+
+"DEADNOISE.vst3" is a VST3 *bundle* (a folder). Keep it as a folder; do not
+rename or move the file inside it.
+
+1. Unblock the download (important)
+-----------------------------------
+Right-click DEADNOISE-FL-STUDIO-WINDOWS-x64.zip -> Properties.
+If you see "This file came from another computer..." tick "Unblock" -> OK.
+(The plugin is not code-signed; an unblocked ZIP avoids Windows blocking it.)
+
+2. Extract into D:\Plugins
+--------------------------
+Right-click the ZIP -> "Extract All..." and enter exactly:
+
+    D:\Plugins
+
+Windows suggests a destination like
+"D:\Plugins\DEADNOISE-FL-STUDIO-WINDOWS-x64" - delete that extra part so the
+destination is only D:\Plugins, then click Extract.
+
+After extracting, this must exist:
+
+    D:\Plugins\DEADNOISE.vst3\Contents\x86_64-win\DEADNOISE.vst3
+
+(If you ended up with D:\Plugins\DEADNOISE-FL-STUDIO-WINDOWS-x64\DEADNOISE.vst3,
+just move the DEADNOISE.vst3 folder up into D:\Plugins.)
+
+If an older DEADNOISE.vst3 folder is already in D:\Plugins, delete it first
+(close FL Studio before doing this).
+
+3. Scan in FL Studio
+--------------------
+1. Open FL Studio.
+2. Options -> Manage plugins.
+3. Make sure D:\Plugins is listed under "Plugin search paths"
+   (it is, if your other plugins from D:\Plugins already work).
+4. Tick "Verify plugins" (recommended), then click "Find installed plugins".
+5. In the list, look for "DEADNOISE" (vendor "DEADNOISE", type VST3, effect).
+   Click the star next to it to add it to your favourites so it shows up in
+   the mixer slot menu.
+
+4. Use it
+---------
+1. Mixer -> select the insert with your USB microphone.
+2. Click an empty slot (preferably slot 1) -> select DEADNOISE.
+3. Stay silent and click LEARN BACKGROUND (4 seconds).
+4. Talk. Default (Natural, 80 %) removes the hiss; go to 100 % or "Maximum"
+   for more. Use Monitoring "Removed" to check you only hear hiss there.
+
+If FL Studio does not list DEADNOISE
+------------------------------------
+* Check the path in step 2 exactly (the .vst3 file must be inside
+  Contents\x86_64-win, not loose in D:\Plugins).
+* Make sure you unblocked the ZIP BEFORE extracting (step 1). If not: delete
+  D:\Plugins\DEADNOISE.vst3, unblock, extract again.
+* In Manage plugins, use "Find installed plugins" with "Verify plugins" ticked
+  and, if needed, "Rescan previously verified plugins".
+* Windows 11 "Smart App Control" (Windows Security -> App & browser control)
+  can block unsigned plugins. If it is on, it may prevent DEADNOISE from loading.
+* Requirements: Windows 10 (1607 or newer) or Windows 11, 64-bit, FL Studio
+  64-bit. No other runtime or redistributable is needed.
+
+Uninstall: close FL Studio and delete D:\Plugins\DEADNOISE.vst3.
