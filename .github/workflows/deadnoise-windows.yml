@@ -124,14 +124,21 @@ jobs:
 
       - name: Independent scan with Carla's plugin discovery (non-JUCE host)
         continue-on-error: true
+        shell: pwsh
         run: |
-          set -o pipefail
-          curl -sSL -o "$RUNNER_TEMP/carla.zip" https://github.com/falkTX/Carla/releases/download/v2.5.10/Carla-2.5.10-win64.zip
-          7z x -y -o"$RUNNER_TEMP/carla" "$RUNNER_TEMP/carla.zip" > /dev/null
-          CD=$(find "$RUNNER_TEMP/carla" -iname 'carla-discovery-native.exe' | head -1)
-          echo "discovery tool: $CD"
-          timeout 300 "$CD" vst3 'D:\Plugins\DEADNOISE.vst3' 2>&1 | tee ci-logs/carla-discovery-build-machine.txt
-          grep -q 'carla-discovery::name::DEADNOISE' ci-logs/carla-discovery-build-machine.txt
+          Invoke-WebRequest -Uri https://github.com/falkTX/Carla/releases/download/v2.5.10/Carla-2.5.10-win64.zip -OutFile "$env:RUNNER_TEMP\carla.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\carla.zip" -DestinationPath "$env:RUNNER_TEMP\carla" -Force
+          $cd = Get-ChildItem -Path "$env:RUNNER_TEMP\carla" -Recurse -Filter 'carla-discovery-native.exe' | Select-Object -First 1
+          $log = 'ci-logs/carla-discovery-build-machine.txt'
+          "discovery tool: $($cd.FullName)" | Out-File $log -Encoding utf8
+          foreach ($target in 'D:\Plugins\DEADNOISE.vst3', 'D:\Plugins\DEADNOISE.vst3\Contents\x86_64-win\DEADNOISE.vst3') {
+            "=== carla-discovery-native vst3 $target" | Out-File $log -Append -Encoding utf8
+            $out = & $cd.FullName vst3 $target 2>&1 | Out-String
+            $out | Out-File $log -Append -Encoding utf8
+            Write-Output $out
+            if ($out -match 'carla-discovery::name::DEADNOISE') { exit 0 }
+          }
+          exit 1
 
       - name: Editor screenshot (rendered on Windows)
         run: build/deadnoise_screenshot_artefacts/Release/deadnoise_screenshot.exe ci-logs/deadnoise-ui-windows.png
@@ -190,13 +197,21 @@ jobs:
 
       - name: Independent scan with Carla's plugin discovery
         continue-on-error: true
+        shell: pwsh
         run: |
-          set -o pipefail
-          curl -sSL -o "$RUNNER_TEMP/carla.zip" https://github.com/falkTX/Carla/releases/download/v2.5.10/Carla-2.5.10-win64.zip
-          7z x -y -o"$RUNNER_TEMP/carla" "$RUNNER_TEMP/carla.zip" > /dev/null
-          CD=$(find "$RUNNER_TEMP/carla" -iname 'carla-discovery-native.exe' | head -1)
-          timeout 300 "$CD" vst3 'D:\Plugins\DEADNOISE.vst3' 2>&1 | tee ci-logs/carla-discovery-clean-machine.txt
-          grep -q 'carla-discovery::name::DEADNOISE' ci-logs/carla-discovery-clean-machine.txt
+          Invoke-WebRequest -Uri https://github.com/falkTX/Carla/releases/download/v2.5.10/Carla-2.5.10-win64.zip -OutFile "$env:RUNNER_TEMP\carla.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\carla.zip" -DestinationPath "$env:RUNNER_TEMP\carla" -Force
+          $cd = Get-ChildItem -Path "$env:RUNNER_TEMP\carla" -Recurse -Filter 'carla-discovery-native.exe' | Select-Object -First 1
+          $log = 'ci-logs/carla-discovery-clean-machine.txt'
+          "discovery tool: $($cd.FullName)" | Out-File $log -Encoding utf8
+          foreach ($target in 'D:\Plugins\DEADNOISE.vst3', 'D:\Plugins\DEADNOISE.vst3\Contents\x86_64-win\DEADNOISE.vst3') {
+            "=== carla-discovery-native vst3 $target" | Out-File $log -Append -Encoding utf8
+            $out = & $cd.FullName vst3 $target 2>&1 | Out-String
+            $out | Out-File $log -Append -Encoding utf8
+            Write-Output $out
+            if ($out -match 'carla-discovery::name::DEADNOISE') { exit 0 }
+          }
+          exit 1
 
       - uses: actions/upload-artifact@v4
         if: always()

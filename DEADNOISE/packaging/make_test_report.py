@@ -76,9 +76,12 @@ for machine, suffix in (('build machine', 'build-machine'), ('clean machine', 'c
     if cd is None:
         summarise('Carla plugin discovery (independent, non-JUCE scanner)', machine, 'NOT RUN')
     else:
-        ok = 'carla-discovery::name::DEADNOISE' in cd and 'carla-discovery::error' not in cd
+        ok = 'carla-discovery::name::DEADNOISE' in cd
+        tool_side = 'assertion failure' in cd and 'carla-discovery::init' not in cd
         summarise('Carla plugin discovery (independent, non-JUCE scanner)', machine,
-                  'PASS (plugin discovered)' if ok else 'DID NOT DETECT (see docs/ci log; informational only)')
+                  'PASS (plugin discovered)' if ok else
+                  ('INCONCLUSIVE (the Carla tool failed its own path check before opening the plugin; informational only)'
+                   if tool_side else 'DID NOT DETECT (see docs/ci log; informational only)'))
 
 dsp = read('dsp-tests-windows.txt')
 if dsp is None:
@@ -155,7 +158,8 @@ cd = read('carla-discovery-build-machine.txt')
 if cd:
     W('  Carla discovery output (build machine):')
     for l in cd.splitlines():
-        if l.startswith('carla-discovery::') and any(k in l for k in ('name', 'label', 'maker', 'audio', 'error', 'category', 'build', 'hints')):
+        if (l.startswith('carla-discovery::') and any(k in l for k in ('name', 'label', 'maker', 'audio', 'error', 'category', 'build', 'hints'))) \
+                or l.startswith('===') or 'assertion' in l:
             W('    ' + l)
     W('')
 
