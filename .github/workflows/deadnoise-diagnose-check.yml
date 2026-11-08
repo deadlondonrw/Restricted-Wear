@@ -1,0 +1,35 @@
+name: DEADNOISE diagnose script check
+
+# Runs the user-facing diagnostics script on a real Windows machine against the
+# published release ZIP extracted into D:\Plugins (Windows PowerShell 5.1).
+on:
+  push:
+    branches: [ 'claude/**' ]
+    paths:
+      - 'DEADNOISE/support/**'
+      - '.github/workflows/deadnoise-diagnose-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Download the released ZIP and extract into D:\Plugins (as the user does)
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/$env:GITHUB_REPOSITORY/releases/download/deadnoise-v1.0.1/DEADNOISE-FL-STUDIO-WINDOWS-x64.zip" -OutFile "$env:RUNNER_TEMP\dn.zip"
+          New-Item -ItemType Directory -Force -Path D:\Plugins | Out-Null
+          Expand-Archive -Path "$env:RUNNER_TEMP\dn.zip" -DestinationPath D:\Plugins -Force
+      - name: Run diagnostics with Windows PowerShell 5.1 (like the user)
+        shell: powershell
+        run: |
+          $PSVersionTable.PSVersion
+          powershell -ExecutionPolicy Bypass -File DEADNOISE\support\DEADNOISE-diagnose.ps1
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+          $t = Get-Content (Join-Path ([Environment]::GetFolderPath('Desktop')) 'DEADNOISE-diagnose.txt') -Raw
+          if ($t -notmatch 'LoadLibrary: OK') { Write-Error 'diagnostics did not report a successful load'; exit 1 }
+          if ($t -notmatch 'matches the released 1.0.1 build') { Write-Error 'hash check failed'; exit 1 }
