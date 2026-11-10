@@ -100,7 +100,7 @@ export function NavBar({ active }: { active?: Section }) {
             onPress={() => setBag(true)}
             hitSlop={10}
             accessibilityRole="button"
-            accessibilityLabel={`Open bag, ${count} pieces`}
+            accessibilityLabel={`Open bag, ${count} ${count === 1 ? "piece" : "pieces"}`}
             style={s.bag}
           >
             <T variant="label" size={13} tracking={0.11}>

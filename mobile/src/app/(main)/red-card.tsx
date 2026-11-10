@@ -110,7 +110,7 @@ export default function RedCardScreen() {
 
           <View style={s.contact}>
             <T size={14} color="dim" fit>
-              Red Card enquiries:{' '}
+              Red Card enquiries:
             </T>
             <Pressable
               onPress={() => Linking.openURL(`mailto:${BRAND.redCardEmail}`).catch(() => toast('NO MAIL APP AVAILABLE'))}
@@ -142,6 +142,6 @@ const useStyles = makeStyles((c) => ({
   fields: { marginTop: 12 },
   actions: { marginTop: 30, flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   contact: { marginTop: 28, flexDirection: 'row', alignItems: 'baseline', maxWidth: '100%' },
-  mail: { borderBottomWidth: 1, borderBottomColor: c.line, flexShrink: 1 },
+  mail: { marginLeft: 4, borderBottomWidth: 1, borderBottomColor: c.line, flexShrink: 1 },
   docCol: { alignItems: 'center' },
 }));

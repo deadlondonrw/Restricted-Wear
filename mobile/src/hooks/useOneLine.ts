@@ -39,11 +39,12 @@ type Options = {
 export function useOneLine({ enabled, text, max, weight, tracking, maxScale, width }: Options) {
   const { width: windowWidth, fontScale } = useWindowDimensions();
   const ref = useRef<Text>(null);
-  const [seen, setSeen] = useState<{ window: number; avail: number } | null>(null);
+  const [seen, setSeen] = useState<{ window: number; text: string; avail: number } | null>(null);
   const [web, setWeb] = useState<{ key: string; scale: number } | null>(null);
 
   const scale = Math.max(1, Math.min(fontScale, maxScale));
-  const laidOut = seen && seen.window === windowWidth ? seen.avail : undefined;
+  /* The measured width belongs to one text: a new label starts again at full size. */
+  const laidOut = seen && seen.window === windowWidth && seen.text === text ? seen.avail : undefined;
 
   let fontSize = max;
   if (enabled) {
@@ -78,7 +79,9 @@ export function useOneLine({ enabled, text, max, weight, tracking, maxScale, wid
           const w = e.nativeEvent.layout.width;
           /* Only ever grows for a given window: shrinking the text must not shrink its own budget. */
           setSeen((prev) =>
-            prev && prev.window === windowWidth && w <= prev.avail + 0.5 ? prev : { window: windowWidth, avail: w },
+            prev && prev.window === windowWidth && prev.text === text && w <= prev.avail + 0.5
+              ? prev
+              : { window: windowWidth, text, avail: w },
           );
         }
       : undefined;

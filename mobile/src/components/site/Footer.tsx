@@ -9,6 +9,7 @@ import { breakpoints } from '@/theme/tokens';
 import { makeStyles } from '@/theme/useTheme';
 
 import { Mark } from '../Brand';
+import { Note } from '../Note';
 import { T } from '../T';
 
 const open = (url: string, fallback: string) => () => {
@@ -71,9 +72,13 @@ export function Footer() {
           <T variant="label" size={12} color="dim2" align="center" fit={content}>
             © 2026 RESTRICTED WEAR. ALL RIGHTS RESERVED.
           </T>
-          <T variant="label" size={12} color="dim2" align="center" fit={content}>
-            CHECKOUT IS A PROTOTYPE. NO PAYMENTS ARE PROCESSED.
-          </T>
+          <Note
+            sentences={['CHECKOUT IS A PROTOTYPE.', 'NO PAYMENTS ARE PROCESSED.']}
+            width={content}
+            size={12}
+            color="dim2"
+            align="center"
+          />
         </View>
       </View>
     </View>

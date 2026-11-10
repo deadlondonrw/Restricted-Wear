@@ -14,6 +14,7 @@ import { makeStyles } from '@/theme/useTheme';
 
 import { Button } from '../Button';
 import { Field } from '../Field';
+import { Note } from '../Note';
 import { T } from '../T';
 
 /**
@@ -160,9 +161,14 @@ function RedCardApplication({ width }: { width: number }) {
       <Field label="COUNTRY" value={country} onChangeText={setCountry} error={checked && invalid.country} autoCapitalize="words" autoComplete="country" />
       <Field label="NOTE (OPTIONAL)" value={note} onChangeText={setNote} multiline />
       <Button label={busy ? 'REVIEWING...' : 'SUBMIT'} variant="primary" block disabled={busy} onPress={submit} />
-      <T variant="label" color="dim" align="center" lineHeight={1.7} fit={width} style={s.note}>
-        PROTOTYPE. DATE OF BIRTH AND NOTE ARE NOT STORED.
-      </T>
+      <Note
+        sentences={['PROTOTYPE.', 'DATE OF BIRTH AND NOTE ARE NOT STORED.']}
+        width={width}
+        color="dim"
+        align="center"
+        lineHeight={1.7}
+        style={s.note}
+      />
     </View>
   );
 }
@@ -176,9 +182,15 @@ function OrderReceived({ reference, width }: { reference: string; width: number 
       <T variant="label" color="dim" align="center" lineHeight={1.8} fit={width} style={s.reference}>
         REFERENCE {reference}
       </T>
-      <T variant="label" color="dim" align="center" lineHeight={1.8} fit={width} style={s.proto}>
-        VISUAL PROTOTYPE — NO PAYMENT WAS PROCESSED.
-      </T>
+      <Note
+        sentences={['VISUAL PROTOTYPE', 'NO PAYMENT WAS PROCESSED.']}
+        joiner=" — "
+        width={width}
+        color="dim"
+        align="center"
+        lineHeight={1.8}
+        style={s.proto}
+      />
       <View style={s.actions}>
         <Button label="RETURN TO SHOP" variant="primary" onPress={() => goSection('shop')} style={s.action} />
         <Button label="VIEW ORDERS" variant="ghost" onPress={() => goSection('account')} style={s.action} />

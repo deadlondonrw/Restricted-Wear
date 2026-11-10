@@ -63,6 +63,12 @@ function fade(p: Playing, target: number, ms: number, done?: () => void) {
 }
 
 /** Browsers block sound until the visitor has interacted with the page. */
+function canPlayNow(): boolean {
+  if (Platform.OS !== 'web') return true;
+  const activation = (globalThis.navigator as { userActivation?: { hasBeenActive?: boolean } } | undefined)?.userActivation;
+  return activation ? !!activation.hasBeenActive : true;
+}
+
 function disarm() {
   if (armed && typeof document !== 'undefined') document.removeEventListener('pointerdown', armed, true);
   armed = null;
@@ -118,9 +124,12 @@ export const sound = {
       player.volume = 0;
       const playing: Playing = { id: product.id, player, fade: null };
       current = playing;
-      player.play();
-      fade(playing, clampVolume(audio.volume), FADE_IN_MS);
-      armForWeb(product);
+      if (canPlayNow()) {
+        player.play();
+        fade(playing, clampVolume(audio.volume), FADE_IN_MS);
+      } else {
+        armForWeb(product);
+      }
     } catch {
       current = null;
     }

@@ -32,7 +32,8 @@ export function ZoomViewer() {
 
 function Viewer({ productId, variant, index }: { productId: string; variant: string; index: number }) {
   const insets = useSafeAreaInsets();
-  const { gutter, navH } = useLayout();
+  const { gutter, navH, width: windowWidth } = useLayout();
+  const compact = windowWidth < 360;
   const closeZoom = useUI((u) => u.closeZoom);
   const setZoomIndex = useUI((u) => u.setZoomIndex);
   const product = findProduct(productId);
@@ -235,16 +236,16 @@ function Viewer({ productId, variant, index }: { productId: string; variant: str
       </View>
 
       <View style={[styles.bar, bar]}>
-        <View style={[styles.group, count > 1 ? null : styles.hidden]}>
+        <View style={[styles.group, compact && styles.groupCompact, count > 1 ? null : styles.hidden]}>
           <BarButton label="PREVIOUS" onPress={() => api.show(index - 1)} />
           <T variant="label" size={12} ink={photoInk.faint} style={styles.num}>
             {index + 1} / {count}
           </T>
           <BarButton label="NEXT" onPress={() => api.show(index + 1)} />
         </View>
-        <View style={styles.levels}>
+        <View style={[styles.levels, compact && styles.levelsCompact]}>
           <BarButton label="−" step disabled={!zoomed} onPress={() => api.at(g.current.sw / 2, g.current.sh / 2, g.current.s / ZOOM.STEP, true)} a11y="Zoom out" />
-          <T variant="label" size={12} ink={photoInk.faint} align="center" style={[styles.num, styles.level]}>
+          <T variant="label" size={12} ink={photoInk.faint} align="center" style={[styles.num, compact ? styles.levelCompact : styles.level]}>
             {Math.round(level * 100)}%
           </T>
           <BarButton label="+" step disabled={level >= ZOOM.MAX - 0.001} onPress={() => api.at(g.current.sw / 2, g.current.sh / 2, g.current.s * ZOOM.STEP, true)} a11y="Zoom in" />
@@ -283,7 +284,10 @@ const styles = StyleSheet.create({
   hidden: { opacity: 0 },
   levels: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   level: { minWidth: 44 },
-  num: { fontVariant: ['tabular-nums'] },
+  groupCompact: { gap: 10 },
+  levelsCompact: { gap: 2 },
+  levelCompact: { minWidth: 34 },
+  num: { fontVariant: ['tabular-nums'], flexShrink: 0 },
   step: { width: 26, alignItems: 'center' },
   disabled: { opacity: 0.3 },
 });
