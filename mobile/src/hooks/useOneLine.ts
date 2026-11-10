@@ -60,7 +60,8 @@ export function useOneLine({ enabled, text, max, weight, tracking, maxScale, wid
   const webKey = `${text}|${windowWidth}|${max}|${fontSize}`;
   if (web && web.key === webKey) fontSize = Math.max(6, Math.floor(fontSize * web.scale * 4) / 4);
 
-  /* Web: measure what was actually rendered. */
+  /* Web: measure what was actually rendered. Runs after every render; it only sets state while the text overflows. */
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useLayoutEffect(() => {
     if (!enabled || Platform.OS !== 'web') return;
     const node = ref.current as unknown as { scrollWidth?: number; clientWidth?: number } | null;
