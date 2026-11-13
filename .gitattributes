@@ -3,3 +3,4 @@ DEADNOISE/bin/** -text
 *.zip binary
 *.vst3 binary
 DEADNOISE/packaging/*.txt text eol=crlf
+DEADNOISE/support/*.bat text eol=crlf

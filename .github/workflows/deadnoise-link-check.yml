@@ -1,0 +1,63 @@
+name: DEADNOISE junction script check
+
+# Tests LINK-DEADNOISE-FROM-D-PLUGINS.bat on Windows: plugin extracted into
+# D:\Plugins, junction created in C:\Program Files\Common Files\VST3, plugin
+# validated through the junction, then UNLINK-DEADNOISE.bat removes only the link.
+on:
+  push:
+    branches: [ 'claude/**' ]
+    paths:
+      - 'DEADNOISE/support/*.bat'
+      - '.github/workflows/deadnoise-link-check.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  link:
+    runs-on: windows-2022
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Released ZIP extracted into D:\Plugins
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/$env:GITHUB_REPOSITORY/releases/download/deadnoise-v1.0.1/DEADNOISE-FL-STUDIO-WINDOWS-x64.zip" -OutFile "$env:RUNNER_TEMP\dn.zip"
+          New-Item -ItemType Directory -Force -Path D:\Plugins | Out-Null
+          Expand-Archive -Path "$env:RUNNER_TEMP\dn.zip" -DestinationPath D:\Plugins -Force
+          if (Test-Path 'C:\Program Files\Common Files\VST3\DEADNOISE.vst3') { throw 'unexpected existing DEADNOISE in VST3 folder' }
+      - name: Run LINK-DEADNOISE-FROM-D-PLUGINS.bat
+        shell: cmd
+        env:
+          DN_NOPAUSE: '1'
+        run: call DEADNOISE\support\LINK-DEADNOISE-FROM-D-PLUGINS.bat
+      - name: Check the junction
+        shell: pwsh
+        run: |
+          $j = Get-Item 'C:\Program Files\Common Files\VST3\DEADNOISE.vst3'
+          "LinkType: $($j.LinkType)  Target: $($j.Target)"
+          if ($j.LinkType -ne 'Junction') { throw 'not a junction' }
+          $through = Get-FileHash 'C:\Program Files\Common Files\VST3\DEADNOISE.vst3\Contents\x86_64-win\DEADNOISE.vst3'
+          $direct  = Get-FileHash 'D:\Plugins\DEADNOISE.vst3\Contents\x86_64-win\DEADNOISE.vst3'
+          if ($through.Hash -ne $direct.Hash) { throw 'hash differs through junction' }
+          "Same file through the junction: $($through.Hash)"
+      - name: pluginval (strictness 10) through the junction in the standard VST3 folder
+        shell: bash
+        run: |
+          set -o pipefail
+          curl -sSL -o "$RUNNER_TEMP/pluginval.zip" https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip
+          7z x -y -o"$RUNNER_TEMP/pluginval" "$RUNNER_TEMP/pluginval.zip" > /dev/null
+          "$RUNNER_TEMP/pluginval/pluginval.exe" --strictness-level 10 --validate-in-process --timeout-ms 900000 \
+            'C:\Program Files\Common Files\VST3\DEADNOISE.vst3' | tee pluginval.txt
+          tail -1 pluginval.txt | grep -q SUCCESS
+      - name: Run UNLINK-DEADNOISE.bat, files on D: must stay
+        shell: cmd
+        env:
+          DN_NOPAUSE: '1'
+        run: call DEADNOISE\support\UNLINK-DEADNOISE.bat
+      - name: Check after unlink
+        shell: pwsh
+        run: |
+          if (Test-Path 'C:\Program Files\Common Files\VST3\DEADNOISE.vst3') { throw 'link still there' }
+          if (-not (Test-Path 'D:\Plugins\DEADNOISE.vst3\Contents\x86_64-win\DEADNOISE.vst3')) { throw 'plugin on D: was removed!' }
+          'Link removed, D:\Plugins\DEADNOISE.vst3 intact.'
