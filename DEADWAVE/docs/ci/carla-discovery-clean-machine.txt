@@ -1,0 +1,34 @@
+discovery tool: D:\a\_temp\carla\Carla-2.5.10-win64\Carla\carla-discovery-native.exe
+=== carla-discovery-native vst3 D:\Plugins\DEADWAVE.vst3
+[carla] Carla assertion failure: "pluginFormat->fileMightContainThisPluginType(filename)" in file carla-discovery.cpp, line 2004
+
+=== carla-discovery-native vst3 D:\Plugins\DEADWAVE.vst3\Contents\x86_64-win\DEADWAVE.vst3
+
+carla-discovery::init::-----------
+
+carla-discovery::build::4
+
+carla-discovery::hints::12
+
+carla-discovery::category::synth
+
+carla-discovery::name::DEADWAVE
+
+carla-discovery::label::DEADWAVE
+
+carla-discovery::maker::DEADWAVE
+
+carla-discovery::uniqueId::-620107190
+
+carla-discovery::audio.ins::0
+
+carla-discovery::audio.outs::2
+
+carla-discovery::midi.ins::1
+
+carla-discovery::midi.outs::0
+
+carla-discovery::parameters.ins::2802
+
+carla-discovery::end::------------
+

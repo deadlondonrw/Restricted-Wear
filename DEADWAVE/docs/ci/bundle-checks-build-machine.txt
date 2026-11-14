@@ -1,0 +1,74 @@
+DEADWAVE bundle checks on runnervm9zap3 (Microsoft Windows NT 10.0.20348.0)
+PASS  zip: single top-level folder DEADWAVE.vst3 (no extra nesting)  [entries: DEADWAVE.vst3/, DEADWAVE.vst3/Contents/, DEADWAVE.vst3/Contents/Resources/, DEADWAVE.vst3/Contents/Resources/moduleinfo.json, DEADWAVE.vst3/Contents/x86_64-win/, DEADWAVE.vst3/Contents/x86_64-win/DEADWAVE.vst3]
+PASS  zip: forward-slash entry paths
+PASS  zip: contains DEADWAVE.vst3/Contents/x86_64-win/DEADWAVE.vst3
+PASS  zip: contains DEADWAVE.vst3/Contents/Resources/moduleinfo.json
+PASS  extract (Expand-Archive) into D:\Plugins -> bundle folder D:\Plugins\DEADWAVE.vst3
+PASS  bundle: Contents\x86_64-win\DEADWAVE.vst3 is a file
+PASS  bundle: Contents\Resources\moduleinfo.json is a file
+PASS  bundle: binary size matches the ZIP entry  [8333312 bytes]
+PASS  extract with Windows tar.exe (second extractor)
+PASS  PE: MZ header
+PASS  PE: PE signature
+PASS  PE: machine = x64 (AMD64, 0x8664)  [0x8664]
+PASS  PE: optional header = PE32+ (64-bit)  [0x20B]
+PASS  PE: image is a DLL  [characteristics 0x2022]
+PASS  PE: not an empty/stub binary (> 1 MB)  [8333312 bytes]
+PASS  LoadLibrary succeeds (every DLL dependency resolves on this machine)  [win32 error 0]
+PASS  export GetPluginFactory
+PASS  export InitDll
+PASS  export ExitDll
+PASS  moduleinfo: parses
+PASS  moduleinfo: module name DEADWAVE  [DEADWAVE]
+PASS  moduleinfo: version 0.1.0  [0.1.0]
+PASS  moduleinfo: audio processor class registered  [ABCDEF019182FAEB4464777644776176]
+PASS  moduleinfo: edit controller class registered  [ABCDEF011234ABCD4464777644776176]
+PASS  moduleinfo: processor and controller have distinct 128-bit IDs
+PASS  moduleinfo: instrument category (Instrument)  [Instrument|Synth]
+
+--- dumpbin /dependents ---
+
+Dump of file D:\Plugins\DEADWAVE.vst3\Contents\x86_64-win\DEADWAVE.vst3
+
+File Type: DLL
+
+  Image has the following dependencies:
+
+    KERNEL32.dll
+    USER32.dll
+    GDI32.dll
+    SHELL32.dll
+    ole32.dll
+    OLEAUT32.dll
+    COMDLG32.dll
+    ADVAPI32.dll
+    WININET.dll
+    WS2_32.dll
+    SHLWAPI.dll
+    WINMM.dll
+    d2d1.dll
+    dxgi.dll
+    d3d11.dll
+    dcomp.dll
+    api-ms-win-shcore-scaling-l1-1-1.dll
+    IMM32.dll
+    COMCTL32.dll
+    dwmapi.dll
+
+  Summary
+
+       2E000 .data
+        1000 .fptable
+       3F000 .pdata
+      1F0000 .rdata
+        E000 .reloc
+        1000 .rsrc
+      58D000 .text
+        1000 _RDATA
+
+PASS  dumpbin: machine (x64)
+PASS  dumpbin: DLL
+PASS  dumpbin: only Windows system DLLs imported (no VC++ runtime / no extra DLLs needed)  [imports: kernel32.dll, user32.dll, gdi32.dll, shell32.dll, ole32.dll, oleaut32.dll, comdlg32.dll, advapi32.dll, wininet.dll, ws2_32.dll, shlwapi.dll, winmm.dll, d2d1.dll, dxgi.dll, d3d11.dll, dcomp.dll, api-ms-win-shcore-scaling-l1-1-1.dll, imm32.dll, comctl32.dll, dwmapi.dll]
+PASS  dumpbin: no debug CRT (Release build)
+
+RESULT: 0 failed check(s)

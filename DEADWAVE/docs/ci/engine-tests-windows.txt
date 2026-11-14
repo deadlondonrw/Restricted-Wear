@@ -1,0 +1,61 @@
+
+== Parameter registry
+  721 parameters, 410 modulation destinations
+
+== Expression engine
+
+== Wavetable mipmaps
+
+== Polyphony and release
+  chord rms 0.4397, peak 1.214
+
+== Pitch, pitch bend and glide
+  A4 measured 440.00 Hz
+  A3 + full bend (12 st) measured 440.00 Hz
+  glide: before 220.0 Hz, mid 313.1 Hz, after 440.0 Hz
+  mono return to held note: 220.0 Hz
+
+== Band-limiting (saw at 3.5 kHz)
+  STANDARD: worst non-harmonic component 92.5 dB below fundamental
+  ULTRA: worst non-harmonic component 92.5 dB below fundamental
+
+== Vertical Bias acts on the real waveform
+  2nd harmonic relative to fundamental: bias 0 -> -127.2 dB, bias 0.4 -> -8.2 dB
+  output mean with bias 0.8: -0.00008
+
+== Modulation matrix
+  rms range with LFO on cutoff: 0.0001 .. 0.1803
+
+== Arpeggiator / sequencer
+  arp 1/16 @120 BPM for 1 s: 9 notes (expected ~8)
+
+== State round-trip
+  state size: 84140 bytes
+
+== Real-time safety (heap allocations in processBlock)
+  allocations during 1 s of heavy processing: 0
+
+== Effects stress (all units, extreme settings)
+  peak 8.00
+
+== Sample rates and block sizes
+
+== Factory presets
+  228 factory presets in 21 categories: Aggressive 9, Analog 10, Atmospheric 10, Bass 19, Bell 9, Cinematic 10, Dark 10, Digital 10, Drone 8, Ethereal 9, Experimental 10, FX 13, Growl 9, Init 1, Keys 12, Lead 18, Pad 18, Pluck 15, Reese 9, Sub Bass 9, Texture 10,
+  heaviest preset: Wide Detune Pad at 5.6% of one core (4-note chord)
+  closest pairs by audio features (z-distance; lower = more similar):
+    0.161  FM Electric Piano  <->  Toy Piano
+    0.200  FM Electric Piano  <->  Bell Piano
+    0.214  Deep Pulse Sub  <->  Picked Bass
+    0.216  Talking Bass  <->  Audio Rate Wobble
+    0.277  Toy Piano  <->  Bell Piano
+    0.285  FM Electric Piano  <->  Steel Drum
+    0.302  Sync Pluck  <->  Drawbar Organ
+    0.309  Stab Lead Unison  <->  Gate Sequence
+  pairs below 0.15: 0 of 25651
+
+== Performance
+  STANDARD: 16 voices x 4 osc x 8 unison = 512 oscillators -> 49.1% of one core
+  ULTRA: 16 voices x 4 osc x 8 unison = 512 oscillators -> 96.1% of one core
+
+76 checks, 0 failures

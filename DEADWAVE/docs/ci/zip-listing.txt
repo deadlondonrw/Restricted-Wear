@@ -1,0 +1,23 @@
+
+7-Zip 26.06 (x64) : Copyright (c) 1999-2026 Igor Pavlov : 2026-11-06
+
+Scanning the drive for archives:
+1 file, 3388869 bytes (3310 KiB)
+
+Listing archive: dist\DEADWAVE-FL-STUDIO-WINDOWS-x64.zip
+
+--
+Path = dist\DEADWAVE-FL-STUDIO-WINDOWS-x64.zip
+Type = zip
+Physical Size = 3388869
+
+   Date      Time    Attr         Size   Compressed  Name
+------------------- ----- ------------ ------------  ------------------------
+2026-11-14 01:22:07 D....            0            0  DEADWAVE.vst3
+2026-11-14 01:22:07 D....            0            0  DEADWAVE.vst3\Contents
+2026-11-14 01:22:07 D....            0            0  DEADWAVE.vst3\Contents\Resources
+2026-11-14 01:22:07 ....A         1083          331  DEADWAVE.vst3\Contents\Resources\moduleinfo.json
+2026-11-14 01:22:07 D....            0            0  DEADWAVE.vst3\Contents\x86_64-win
+2026-11-14 01:22:07 ....A      8333312      3387446  DEADWAVE.vst3\Contents\x86_64-win\DEADWAVE.vst3
+------------------- ----- ------------ ------------  ------------------------
+2026-11-14 01:22:07            8334395      3387777  2 files, 4 folders

@@ -1,0 +1,95 @@
+DEADWAVE - TEST REPORT
+========================================================================
+Version            : 0.1.0
+Deliverable        : DEADWAVE-FL-STUDIO-WINDOWS-x64.zip
+SHA-256            : feb7516b779b69881ef01b04a1943bf98f019a88127513cb6d2d1d6396b36baf
+Alternative        : DEADWAVE-FL-STUDIO-WINDOWS-x64-SINGLE-FILE.zip  (single-file VST3)
+SHA-256            : ca16d3a592c1d282cc3e0359fcefd6165c56158b48d8f4e4254c2a85c31c7eef
+Format             : VST3 instrument, Windows x64 (AMD64), Release, static MSVC runtime
+
+1. BUILD CONFIGURATION
+------------------------------------------------------------------------
+  commit: d21f647132632191a25fb40093497e1b270ee67c
+  version: 0.1.0
+  build machine: GitHub Actions windows-2022 (win22 20261112.366.7)
+  generator: Visual Studio 17 2022, platform x64, configuration Release
+  compiler: MSBuild version 17.14.60+43b635718 fo
+  runtime: MSVC static (/MT), no Visual C++ redistributable required
+  framework: JUCE 8.0.15 (VST3 SDK bundled with JUCE)
+  built: 2026-11-14T01:22:09Z
+
+2. ZIP CONTENTS (extract directly into D:\Plugins)
+------------------------------------------------------------------------
+  DEADWAVE.vst3/
+  DEADWAVE.vst3/Contents/
+  DEADWAVE.vst3/Contents/Resources/
+  DEADWAVE.vst3/Contents/Resources/moduleinfo.json                   1083 bytes
+  DEADWAVE.vst3/Contents/x86_64-win/
+  DEADWAVE.vst3/Contents/x86_64-win/DEADWAVE.vst3                 8333312 bytes
+  ZIP integrity (CRC of every entry): PASS
+  Only one top-level folder "DEADWAVE.vst3": PASS
+
+3. RESULTS OF TESTS ACTUALLY PERFORMED
+------------------------------------------------------------------------
+  "build machine" = the GitHub Actions Windows Server 2022 runner that compiled the plugin.
+  "clean machine" = a second, separate Windows runner (Microsoft Windows NT 10.0.26100.0; runner image: win25-vs2026 20261103.298.1)
+                    that received only the ZIP and the test tools, no build files.
+
+  Bundle / binary checks (ZIP extracted to D:\Plugins)
+      build machine : PASS (30 passed, 0 failed)
+      clean machine : PASS (30 passed, 0 failed)
+  Steinberg VST3 validator, extensive (-e)
+      build machine : PASS (537 passed, 0 failed)
+      clean machine : PASS (537 passed, 0 failed)
+  pluginval, strictness level 10
+      build machine : PASS
+      clean machine : PASS
+  VST3 host test (scan, instantiate, play MIDI, state, editor)
+      build machine : PASS (10 checks, 0 failures)
+      clean machine : PASS (10 checks, 0 failures)
+  Carla plugin discovery (independent, non-JUCE scanner)
+      build machine : PASS (plugin discovered)
+      clean machine : PASS (plugin discovered)
+  Single-file VST3 (D:\Plugins\DEADWAVE.vst3 as one file): load + pluginval
+      build machine : PASS
+  Engine test-suite (synthesis, pitch, glide, aliasing, bias, presets, RT safety)
+      build machine : PASS (76 checks, 0 failures)
+
+  Engine test highlights (build machine):
+    A4 measured 440.00 Hz
+    A3 + full bend (12 st) measured 440.00 Hz
+    glide: before 220.0 Hz, mid 313.1 Hz, after 440.0 Hz
+    STANDARD: worst non-harmonic component 92.5 dB below fundamental
+    ULTRA: worst non-harmonic component 92.5 dB below fundamental
+    2nd harmonic relative to fundamental: bias 0 -> -127.2 dB, bias 0.4 -> -8.2 dB
+    state size: 84140 bytes
+    allocations during 1 s of heavy processing: 0
+    228 factory presets in 21 categories: Aggressive 9, Analog 10, Atmospheric 10, Bass 19, Bell 9, Cinematic 10, Dark 10, Digital 10, Drone 8, Ethereal 9, Experimental 10, FX 13, Growl 9, Init 1, Keys 12, Lead 18, Pad 18, Pluck 15, Reese 9, Sub Bass 9, Texture 10,
+    heaviest preset: Wide Detune Pad at 5.6% of one core (4-note chord)
+    pairs below 0.15: 0 of 25651
+    STANDARD: 16 voices x 4 osc x 8 unison = 512 oscillators -> 49.1% of one core
+    ULTRA: 16 voices x 4 osc x 8 unison = 512 oscillators -> 96.1% of one core
+
+4. TESTS THAT COULD NOT BE PERFORMED
+------------------------------------------------------------------------
+  * FL Studio was NOT available in CI. DEADWAVE has NOT been scanned, loaded or
+    played in FL Studio itself, so FL Studio compatibility is NOT verified.
+    It passes Steinberg's reference validator, pluginval and a JUCE VST3 host,
+    but only a scan and a test session in your FL Studio can confirm it.
+  * FL Studio piano-roll slide notes: FL Studio applies slide notes to its own
+    plug-ins. For VST3 instruments DEADWAVE relies on glide (overlap legato) and
+    pitch bend; whether FL converts slide notes into pitch bend for a VST3 was
+    not tested.
+  * No test on a Windows 10/11 desktop installation (Windows Server runners).
+  * No listening test with your speakers / audio interface; sound quality was
+    checked with automated measurements (aliasing, pitch, levels, finite output).
+
+5. KNOWN LIMITATIONS
+------------------------------------------------------------------------
+  * The binary is not code-signed: unblock the ZIP before extracting (INSTALLATION.txt).
+  * The host sees about 2,800 parameters: ~720 DEADWAVE parameters plus JUCE's
+    MIDI-CC proxy parameters that let VST3 hosts deliver pitch bend, mod wheel and
+    aftertouch to the instrument.
+  * ULTRA quality renders voices at 2x and roughly doubles the oscillator CPU cost.
+
+OVERALL (all mandatory tests above): PASS

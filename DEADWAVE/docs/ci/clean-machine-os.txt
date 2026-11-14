@@ -1,0 +1,2 @@
+Microsoft Windows NT 10.0.26100.0
+runner image: win25-vs2026 20261103.298.1

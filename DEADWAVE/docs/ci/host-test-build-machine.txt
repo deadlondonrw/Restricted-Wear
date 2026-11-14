@@ -1,0 +1,17 @@
+  ok: VST3 module exposes exactly one plug-in class
+  found: DEADWAVE by DEADWAVE, 0.1.0, instrument=1
+  ok: registered as an instrument
+  ok: instance created
+  parameters exposed to the host: 2802
+  ok: full parameter set visible to the host
+  rendered energy: 23698.86
+  ok: output finite
+  ok: plays a chord through the VST3 wrapper
+  state size: 4769 bytes
+  ok: state saved
+  ok: state restored identically in a second instance
+  editor: 1280 x 820
+  ok: editor opens at a sensible size
+  ok: editor closed cleanly
+10 checks, 0 failures
+HOST TEST PASSED
