@@ -21,7 +21,7 @@ Linux (local + CI) — `DeadwaveTests` 76 checks, `DeadwaveHostTest` 10 checks, 
 * All 11 effects at extreme settings stay finite (safety ceiling holds).
 * Sample rates 44.1–192 kHz and block sizes 1–2048 (incl. odd sizes) render finite audio.
 * State save/restore round-trip is identical, including restore from a background thread.
-* All 196 factory presets render finite, audible audio below +8 dBFS for a 4-note chord;
+* All 228 factory presets render finite, audible audio below +8 dBFS for a 4-note chord;
   no two presets are near-duplicates by audio features (closest z-distance 0.16).
 * The built VST3 loads through JUCE's VST3 hosting: 1 class, instrument, plays MIDI,
   host-side state round-trip identical, editor opens at 1280 × 820 and closes cleanly.
@@ -47,8 +47,8 @@ run is written to `bin/TEST_REPORT.txt`; only that report states what passed on 
 
 * FL Studio piano-roll *slide notes* are not supported for VST3 instruments (FL feature);
   DEADWAVE offers overlap glide and pitch bend instead. Not claimed otherwise.
-* Factory library: 196 presets (target was 200–250). More are planned; each new preset will
-  go through the same audibility/level/duplicate checks.
+* Factory library: 228 presets (target 200–250). Every preset is checked automatically for
+  audibility, level and near-duplicates; musical judgement still needs your ears.
 * Per-effect parameters are host-automatable and modulatable at control rate (32 samples);
   there is no per-sample FX modulation.
 * FM sources are limited to lower-numbered oscillators (and the internal sine) to keep the
@@ -64,6 +64,6 @@ run is written to `bin/TEST_REPORT.txt`; only that report states what passed on 
 
 1. Run the Windows pipeline to green and install the ZIP in FL Studio (user test).
 2. Fix anything found in FL Studio (scan, DPI, glide feel, CPU on the user's machine).
-3. Grow the factory library past 220, and add per-preset tags.
+3. Refine factory presets after listening in FL Studio; add per-preset tags.
 4. Optimise the oscillator inner loop (SIMD across unison voices).
 5. Optional: wavetable drag-and-drop from the browser, MPE, AU build.

@@ -7,7 +7,7 @@ build and test pipeline).
 Four oscillators with a deep wave editor, two filters, four envelopes, four LFOs,
 a 32-slot modulation matrix with drag-and-drop, eleven effects with per-oscillator
 FX lanes and LINK FX, glide/legato for FL Studio, arpeggiator and step sequencer,
-196 factory presets and a local sound generator.
+228 factory presets and a local sound generator.
 
 > Status: first development build (0.1.0). It builds and passes automated tests on
 > Windows and Linux, but it has **not yet been played in FL Studio** — see
@@ -57,7 +57,7 @@ Built with MSVC (static runtime): no Visual C++ redistributable needed.
 | Voices | Poly up to 32 (stealing with short fades), mono, legato, glide, sustain pedal, analog drift / instability / saturation / filter nonlinearity / stereo variation |
 | Quality | STANDARD and ULTRA (voices rendered at 2× with a linear-phase half-band decimator) |
 | MIDI FX | Arpeggiator (7 modes, octaves, gate, swing, velocity, hold, cycle length + transpose) and 16-step sequencer (pitch, velocity, gate per step), host-synced or free-running |
-| Presets | 196 factory presets in 20 categories; search, categories, favourites, recent, user save / rename / delete / import (`Documents\DEADWAVE\Presets`) |
+| Presets | 228 factory presets in 20 categories; search, categories, favourites, recent, user save / rename / delete / import (`Documents\DEADWAVE\Presets`) |
 | Generator | Local and rule-based (no AI service): text description → traits → complete preset; parameter-based design; partial / full randomisation with group locks and intensity; undo |
 
 ## 4. Build

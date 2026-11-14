@@ -935,6 +935,108 @@ void extras (List& L)
         .osc (0, "Basic Shapes", 0.0f, 0.4f, 1).filt (0, BP24, 1200.0f, 0.8f).lfoHz (0, SH, 7.0f, 0).mod (M::Lfo1, "filter1_cutoff", 0.35f)
         .mod (M::Lfo1, "osc1_pitch", 0.1f).amp (0.01f, 1.0f, 1.0f, 0.5f).reverb (0.5f, 2.0f, 0.3f).done());
 }
+
+// ======================================================== second wave of designs (one idea each)
+void moreDesigns (List& L)
+{
+    L.push_back (D ("Talking Bass", "Bass", "Formant filter on a saw bass: the mod wheel moves the vowel.")
+        .osc (0, "Saw Tilt", 0.9f, 0.7f, -1).filt (0, FORMANT, 200.0f, 0.55f, 0.0f, 0.2f, 0.0f).mod (M::ModWheel, "filter1_cutoff", 0.6f)
+        .mod (M::Env2, "filter1_cutoff", 0.15f).env (1, 0.0f, 0.3f, 0.0f, 0.2f).amp (0.001f, 0.4f, 0.85f, 0.1f).mono (true, 2).bassMono().done());
+    L.push_back (D ("Hoover", "Bass", "Rave hoover: wide PWM unison with a pitch dip on every note and chorus.")
+        .osc (0, "PWM", 0.5f, 0.55f, -1, 7, 0.35f, 1.0f).osc (1, "Saw Tilt", 1.0f, 0.4f, 0, 3, 0.25f).mod (M::Env3, "osc1_pitch", -0.02f)
+        .mod (M::Env3, "osc2_pitch", -0.02f).env (2, 0.0f, 0.25f, 0.0f, 0.2f).lfoHz (0, TRI, 0.8f, 0).mod (M::Lfo1, "osc1_wtpos", 0.3f)
+        .mono (true, 1, 0.12f).chorus (0.6f, 0.6f, 0.4f).amp (0.005f, 0.5f, 0.85f, 0.2f).done());
+    L.push_back (D ("Picked Bass", "Bass", "Pick noise transient over a key-tracked low-pass saw.")
+        .osc (0, "Saw Tilt", 0.6f, 0.7f, -1).noise (1, 0.0f, 0.5f).env (2, 0.0f, 0.012f, 0.0f, 0.01f).mod (M::Env3, "osc2_level", 0.5f)
+        .filt (0, LP24, 500.0f, 0.15f, 0.35f, 0.0f, 0.8f).env (1, 0.0f, 0.18f, 0.2f, 0.1f).amp (0.001f, 0.8f, 0.4f, 0.1f).bassMono().done());
+    L.push_back (D ("Sub Octave Stack", "Sub Bass", "Sine with its octave, gently driven: audible on small speakers.")
+        .osc (0, "Sub Shapes", 0.33f, 0.8f, -1).ox (0, "drive", 0.25f).amp (0.003f, 0.5f, 1.0f, 0.12f).mono (false, 0).imager (0.0f).done());
+    L.push_back (D ("Liquid Reese", "Reese", "Soft reese with phaser drift and a little space - liquid drum and bass.")
+        .osc (0, "Saw Tilt", 0.7f, 0.55f, -1, 3, 0.15f, 0.7f).filt (0, LP24, 700.0f, 0.15f).phaser (0.07f, 0.7f, 600.0f, 0.4f, 2, 0.4f)
+        .reverb (0.4f, 1.5f, 0.12f).mono (true, 2).bassMono().done());
+    L.push_back (D ("Bit Growl", "Growl", "Growl table through a sample-and-hold bitcrusher rate.")
+        .osc (0, "Growl", 0.5f, 0.7f, -1).lfoSync (0, SH, D16, 1).mod (M::Lfo1, "osc1_wtpos", 0.5f).crush (8.0f, 9000.0f, 0.7f)
+        .mod (M::Lfo1, "fx_crs_rate", 0.3f).mono (true, 2).bassMono().done());
+    L.push_back (D ("Theremin", "Lead", "Pure sine that always glides, with a wandering vibrato.")
+        .osc (0, "Basic Shapes", 0.0f, 0.7f).mono (true, 1, 0.25f).lfoHz (0, SINE, 6.0f, 0).mod (M::Lfo1, "osc1_fine", 0.07f)
+        .lfoHz (1, SRAND, 0.5f, 0, 0.7f).mod (M::Lfo2, "osc1_fine", 0.04f).amp (0.08f, 0.5f, 0.9f, 0.4f).reverb (0.6f, 2.5f, 0.25f).done());
+    L.push_back (D ("Hyper Lead", "Lead", "Sixteen-voice saw with an octave layer and soft clipping.")
+        .osc (0, "Saw Tilt", 1.0f, 0.5f, 0, 16, 0.32f, 1.0f).osc (1, "Saw Tilt", 1.0f, 0.3f, 1, 4, 0.2f).dist (SOFT, 6.0f, 0.6f, 0.4f)
+        .filt (0, LP12, 9000.0f, 0.1f).amp (0.003f, 0.4f, 0.85f, 0.3f).delay (D8D, 0.3f, 0.15f).done());
+    L.push_back (D ("Detuned Square Lead", "Lead", "Two squares slightly detuned with slow pulse-width motion.")
+        .osc (0, "PWM", 0.0f, 0.55f).osc (1, "PWM", 0.0f, 0.5f).ox (1, "fine", 11.0f).lfoHz (0, TRI, 0.3f, 0).mod (M::Lfo1, "osc1_wtpos", 0.4f)
+        .mod (M::Lfo1, "osc2_wtpos", -0.4f).filt (0, LP24, 4500.0f, 0.15f).mono (true, 2, 0.05f).done());
+    L.push_back (D ("Spectral Morph Pad", "Pad", "Random spectral wavetable morphed in ULTRA quality.")
+        .oscRand (0, 0, 123457u, 0.8f, 64, 0.0f, 0.5f, 0, 6).p ("osc1_detune", 0.2f).lfoHz (0, SINE, 0.05f, 0).mod (M::Lfo1, "osc1_wtpos", 0.9f)
+        .ultra().amp (1.0f, 2.0f, 0.9f, 3.0f).reverb (0.8f, 5.0f, 0.35f).done());
+    L.push_back (D ("Comb Pad", "Pad", "Saw and noise ringing through a key-tracked comb.")
+        .osc (0, "Saw Tilt", 0.6f, 0.4f, 0, 3, 0.12f).noise (1, 0.15f, 0.0f).filt (0, COMBP, 220.0f, 0.75f, 0.0f, 0.0f, 1.0f)
+        .filt (1, LP12, 5000.0f, 0.1f).amp (0.8f, 2.0f, 0.9f, 2.5f).reverb (0.7f, 4.0f, 0.3f).done());
+    L.push_back (D ("Formant Strings", "Pad", "Strings shaped by a fixed vowel formant for a woody ensemble.")
+        .osc (0, "Saw Tilt", 0.7f, 0.5f, 0, 6, 0.15f, 1.0f).filt (0, FORMANT, 1500.0f, 0.4f).p ("filter1_mix", 0.6f)
+        .amp (0.5f, 1.0f, 0.9f, 1.5f).chorus (0.5f, 0.5f, 0.3f).reverb (0.7f, 3.5f, 0.3f).done());
+    L.push_back (D ("Steel Drum", "Pluck", "FM steel pan: ratio 2 bell with a fast drop in brightness.")
+        .osc (0, "Basic Shapes", 0.0f, 0.6f).fm (0, 1, 0.35f, 2.0f).mod (M::Env2, "osc1_fmamt", -0.3f).env (1, 0.0f, 0.25f, 0.0f, 0.2f)
+        .amp (0.001f, 0.9f, 0.0f, 0.5f).reverb (0.5f, 1.8f, 0.2f).done());
+    L.push_back (D ("Kalimba", "Pluck", "Thumb piano: soft fundamental with a short inharmonic tine.")
+        .osc (0, "Basic Shapes", 0.0f, 0.6f, 1).fm (0, 1, 0.25f, 6.3f).mod (M::Env2, "osc1_fmamt", -0.25f).env (1, 0.0f, 0.05f, 0.0f, 0.05f)
+        .amp (0.001f, 1.0f, 0.0f, 0.6f).reverb (0.5f, 1.5f, 0.2f).done());
+    L.push_back (D ("Pipe Organ", "Keys", "Full registration in a large hall with slow attack.")
+        .osc (0, "Organ", 0.82f, 0.5f, 0, 2, 0.04f).osc (1, "Organ", 0.0f, 0.35f, -1).amp (0.06f, 0.5f, 1.0f, 0.6f)
+        .reverb (0.95f, 6.0f, 0.4f, 0.4f, 30.0f).done());
+    L.push_back (D ("Rhodes Tremolo", "Keys", "FM electric piano with stereo auto-pan tremolo.")
+        .osc (0, "Basic Shapes", 0.0f, 0.65f).fm (0, 1, 0.22f, 1.0f).mod (M::Velocity, "osc1_fmamt", 0.2f).env (1, 0.0f, 0.6f, 0.0f, 0.3f)
+        .mod (M::Env2, "osc1_fmamt", 0.15f).lfoHz (0, SINE, 4.0f, 0).mod (M::Lfo1, "osc1_pan", 0.6f).amp (0.001f, 2.5f, 0.2f, 0.5f).done());
+    L.push_back (D ("Church Bell", "Bell", "Low, long, beating metallic bell.")
+        .osc (0, "Metallic", 0.7f, 0.5f, -1).osc (1, "Glass", 0.4f, 0.3f, 0).ox (1, "fine", -6.0f).fm (0, 1, 0.12f, 2.4f)
+        .amp (0.001f, 6.0f, 0.0f, 5.0f).reverb (0.9f, 7.0f, 0.4f).done());
+    L.push_back (D ("Deep Space Hum", "Atmospheric", "Sub hum and dark noise through a slowly sweeping comb.")
+        .osc (0, "Sub Shapes", 0.0f, 0.4f, -2).noise (1, 0.3f, -0.6f).route (1, 0).route (0, 3).filt (0, COMBN, 60.0f, 0.7f, 0.0f, 0.0f, 0.0f)
+        .lfoHz (0, SINE, 0.03f, 0).mod (M::Lfo1, "filter1_cutoff", 0.2f).amp (3.0f, 2.0f, 1.0f, 5.0f).reverb (0.9f, 8.0f, 0.4f).done());
+    L.push_back (D ("Dark Swell Strings", "Cinematic", "Low strings swelling over four seconds.")
+        .osc (0, "Saw Tilt", 0.5f, 0.5f, -1, 8, 0.16f, 1.0f).filt (0, LP24, 500.0f, 0.15f, 0.4f).env (1, 4.0f, 2.0f, 0.7f, 3.0f)
+        .amp (3.0f, 2.0f, 0.9f, 3.5f).reverb (0.9f, 6.0f, 0.35f).done());
+    L.push_back (D ("Granular Glass", "Texture", "Glass table jumping between frames at random, through delay.")
+        .osc (0, "Glass", 0.5f, 0.45f, 1, 2, 0.06f).lfoHz (0, SH, 18.0f, 0).mod (M::Lfo1, "osc1_wtpos", 0.9f).mod (M::Lfo1, "osc1_pan", 0.5f)
+        .amp (0.2f, 2.0f, 0.9f, 2.0f).delay (D16T, 0.55f, 0.3f).reverb (0.8f, 5.0f, 0.35f).done());
+    L.push_back (D ("Fifths Drone", "Drone", "Root and fifth with beating detune and slow filter breath.")
+        .osc (0, "Saw Tilt", 0.4f, 0.45f, -1, 2, 0.05f).osc (1, "Saw Tilt", 0.4f, 0.4f, -1).ox (1, "semi", 7.0f).ox (1, "fine", 3.0f)
+        .filt (0, LP24, 700.0f, 0.2f).lfoHz (0, SINE, 0.06f, 0).mod (M::Lfo1, "filter1_cutoff", 0.15f).amp (2.0f, 2.0f, 1.0f, 5.0f)
+        .reverb (0.85f, 6.0f, 0.35f).done());
+    L.push_back (D ("Audio Rate Wobble", "Experimental", "LFO at 40 Hz on wave position: amplitude-modulation sidebands.")
+        .osc (0, "Basic Shapes", 0.5f, 0.6f).lfoHz (0, SINE, 40.0f, 1).mod (M::Lfo1, "osc1_wtpos", 0.4f).mod (M::ModWheel, "lfo1_rate", 0.4f)
+        .amp (0.01f, 0.5f, 0.85f, 0.3f).filt (0, LP24, 6000.0f, 0.1f).done());
+    L.push_back (D ("Arcade Lead", "Digital", "Chip pulse with octave-flipping 1/32 arpeggio.")
+        .osc (0, "Chip", 0.3f, 0.55f).amp (0.001f, 0.1f, 0.9f, 0.05f).arp (2, 12, 2, 0.8f).crush (7.0f, 22050.0f, 1.0f).done());
+    L.push_back (D ("Poly Brass Swell", "Analog", "Brass that swells open, drift and ensemble.")
+        .osc (0, "Saw Tilt", 0.8f, 0.5f, 0, 3, 0.1f).filt (0, LADLP, 500.0f, 0.15f, 0.6f, 0.1f).env (1, 0.6f, 0.8f, 0.5f, 0.5f)
+        .amp (0.3f, 0.6f, 0.9f, 0.6f).analog (0.45f, 0.3f, 0.1f, 0.4f, 0.3f).chorus (0.5f, 0.4f, 0.3f).done());
+    L.push_back (D ("Grave Pad", "Dark", "Hollow, low, closed pad for horror underscore.")
+        .osc (0, "Hollow Square", 0.8f, 0.5f, -1, 4, 0.12f).filt (0, LP24, 350.0f, 0.3f).lfoHz (0, SRAND, 0.1f, 0, 0.8f)
+        .mod (M::Lfo1, "filter1_cutoff", 0.1f).amp (2.0f, 2.0f, 0.9f, 4.0f).reverb (0.9f, 8.0f, 0.4f, 0.9f).done());
+    L.push_back (D ("Shimmer Strings", "Ethereal", "High strings with an octave layer and a bright, long hall.")
+        .osc (0, "Saw Tilt", 0.6f, 0.4f, 1, 6, 0.14f, 1.0f).osc (1, "Basic Shapes", 0.0f, 0.25f, 2).filt (0, HP12, 300.0f, 0.1f)
+        .amp (0.8f, 1.0f, 0.9f, 3.0f).delay (D4D, 0.5f, 0.2f).reverb (0.95f, 9.0f, 0.45f, 0.15f).done());
+    L.push_back (D ("Sync Bass Drive", "Aggressive", "Hard-sync bass with LFO-driven ratio and tube drive.")
+        .osc (0, "Basic Shapes", 0.5f, 0.6f, -1).warp (0, SYNC, 0.3f).lfoSync (0, TRI, D8, 1).mod (M::Lfo1, "osc1_shape", 0.4f)
+        .ultra().dist (TUBE, 14.0f, 0.5f, 0.6f).filt (0, LP24, 3500.0f, 0.2f).mono (true, 2).bassMono().done());
+    L.push_back (D ("Siren Sweep", "FX", "Slow triangle siren over an octave.")
+        .osc (0, "Basic Shapes", 0.45f, 0.5f).lfoHz (0, TRI, 0.4f, 0).mod (M::Lfo1, "osc1_pitch", 0.07f).amp (0.05f, 0.5f, 1.0f, 0.5f)
+        .reverb (0.7f, 3.0f, 0.3f).done());
+    L.push_back (D ("Noise Snare", "FX", "Synth snare: noise burst through a band-pass plus a short tone.")
+        .noise (0, 0.6f, 0.2f).filt (0, BP12, 1800.0f, 0.3f).osc (1, "Basic Shapes", 0.0f, 0.4f, 0).route (1, 3).p ("osc2_keytrack", 0.0f)
+        .ox (1, "pitch", -2.0f).amp (0.001f, 0.18f, 0.0f, 0.12f).reverb (0.4f, 1.0f, 0.15f).done());
+    L.push_back (D ("Kick Drum", "FX", "Synth kick: sine with a fast pitch drop and a click.")
+        .osc (0, "Basic Shapes", 0.0f, 0.85f).p ("osc1_keytrack", 0.0f).p ("osc1_pitch", -24.0f).mod (M::Env3, "osc1_pitch", 0.3f)
+        .env (2, 0.0f, 0.06f, 0.0f, 0.05f, 0.0f, 0.85f).ox (0, "drive", 0.3f).amp (0.0005f, 0.35f, 0.0f, 0.1f).imager (0.0f).done());
+    L.push_back (D ("Wide Pluck Chords", "Pluck", "Wide unison pluck for chord stabs with stereo delay.")
+        .osc (0, "Saw Tilt", 0.85f, 0.5f, 0, 8, 0.22f, 1.0f).filt (0, LP24, 900.0f, 0.2f, 0.55f).env (1, 0.0f, 0.3f, 0.0f, 0.2f)
+        .amp (0.001f, 0.6f, 0.0f, 0.4f).delay (D8D, 0.4f, 0.25f).reverb (0.6f, 2.5f, 0.25f).done());
+    L.push_back (D ("Seq Bass Groove", "Bass", "Sequenced 1/16 bass groove: hold one note.")
+        .osc (0, "Saw Tilt", 0.8f, 0.7f, -1).filt (0, LADLP, 450.0f, 0.5f, 0.45f, 0.2f).env (1, 0.0f, 0.12f, 0.0f, 0.1f)
+        .amp (0.001f, 0.2f, 0.6f, 0.06f).seq (10, { 0, -99, 0, 12, -99, 0, 10, 0, 0, -99, 7, 0, 12, -99, 3, 5 }, 0.45f)
+        .mono (false, 0).bassMono().done());
+}
 } // namespace
 
 const std::vector<FactoryPreset>& factoryPresets()
@@ -968,6 +1070,7 @@ const std::vector<FactoryPreset>& factoryPresets()
         aggressive (out);
         fxPresets (out);
         extras (out);
+        moreDesigns (out);
         return out;
     }();
     return list;
