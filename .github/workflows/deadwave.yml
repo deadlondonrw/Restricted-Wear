@@ -125,7 +125,7 @@ jobs:
           set -o pipefail
           dist/tools/DeadwaveHostTest.exe 'D:\Plugins\DEADWAVE.vst3' | tee ci-logs/host-test-build-machine.txt
 
-      - name: Single-file variant (D:\PluginsSingle\DEADWAVE.vst3): load + pluginval
+      - name: "Single-file variant (D:\\PluginsSingle\\DEADWAVE.vst3) - load + pluginval"
         shell: pwsh
         run: |
           $log = 'ci-logs/single-file-build-machine.txt'
