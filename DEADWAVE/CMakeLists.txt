@@ -100,7 +100,7 @@ target_link_libraries(DEADWAVE
         juce::juce_recommended_warning_flags)
 
 if(MSVC)
-    target_compile_options(DEADWAVE PRIVATE /fp:fast /bigobj)
+    target_compile_options(DEADWAVE PRIVATE /bigobj)
 else()
     target_compile_options(DEADWAVE PRIVATE -ffast-math -fno-finite-math-only)
 endif()
@@ -124,7 +124,7 @@ if(DEADWAVE_BUILD_TESTS)
         juce::juce_recommended_config_flags
         juce::juce_recommended_warning_flags)
     if(MSVC)
-        target_compile_options(DeadwaveTests PRIVATE /fp:fast /bigobj)
+        target_compile_options(DeadwaveTests PRIVATE /bigobj)
     else()
         target_compile_options(DeadwaveTests PRIVATE -ffast-math -fno-finite-math-only)
     endif()

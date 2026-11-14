@@ -1,0 +1,65 @@
+name: DEADWAVE
+
+on:
+  push:
+    paths:
+      - "DEADWAVE/**"
+      - ".github/workflows/deadwave.yml"
+  workflow_dispatch:
+
+jobs:
+  windows:
+    name: Windows x64 (MSVC) - VST3
+    runs-on: windows-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure
+        run: cmake -S DEADWAVE -B build -G "Visual Studio 17 2022" -A x64 -DDEADWAVE_BUILD_TESTS=ON
+
+      - name: Build VST3, Standalone and tests
+        run: cmake --build build --config Release --parallel --target DEADWAVE_VST3 DEADWAVE_Standalone DeadwaveTests DeadwaveHostTest
+
+      - name: Engine tests
+        run: build/DeadwaveTests_artefacts/Release/DeadwaveTests.exe
+
+      - name: Host test (loads the built VST3 through JUCE's VST3 hosting)
+        run: build/DeadwaveHostTest_artefacts/Release/DeadwaveHostTest.exe build/DEADWAVE_artefacts/Release/VST3/DEADWAVE.vst3
+
+      - name: Upload VST3
+        uses: actions/upload-artifact@v4
+        with:
+          name: DEADWAVE-VST3-Windows-x64
+          path: build/DEADWAVE_artefacts/Release/VST3/
+
+      - name: Upload Standalone
+        uses: actions/upload-artifact@v4
+        with:
+          name: DEADWAVE-Standalone-Windows-x64
+          path: build/DEADWAVE_artefacts/Release/Standalone/
+
+  linux:
+    name: Linux x64 - build and tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ninja-build libasound2-dev libx11-dev libxrandr-dev libxinerama-dev \
+            libxcursor-dev libxcomposite-dev libfreetype-dev libfontconfig1-dev libgl1-mesa-dev libcurl4-openssl-dev xvfb
+
+      - name: Configure
+        run: cmake -S DEADWAVE -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build
+        run: cmake --build build --target DEADWAVE_VST3 DeadwaveTests DeadwaveHostTest
+
+      - name: Engine tests
+        run: build/DeadwaveTests_artefacts/Release/DeadwaveTests
+
+      - name: Host test
+        run: xvfb-run -a build/DeadwaveHostTest_artefacts/Release/DeadwaveHostTest build/DEADWAVE_artefacts/Release/VST3/DEADWAVE.vst3
