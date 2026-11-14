@@ -51,7 +51,7 @@ struct OscP
 {
     enum
     {
-        On, Type, Level, Pan, Octave, Semi, Fine, KeyTrack,
+        On, Type, Level, Pan, Octave, Semi, Fine, Pitch, KeyTrack,
         WtPos, Bias, Amp, Phase, PhaseRand, Shape, WarpMode,
         Unison, Detune, Spread, Blend,
         FmSrc, FmAmt, FmRatio,

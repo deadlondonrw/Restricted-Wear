@@ -61,7 +61,19 @@ set(DEADWAVE_SOURCES
     Source/Wave/WaveDocument.cpp
     Source/Presets/StateIO.cpp
     Source/Presets/PresetManager.cpp
-    Source/Presets/FactoryPresets.cpp)
+    Source/Presets/FactoryPresets.cpp
+    Source/Presets/SoundGenerator.cpp
+    Source/Wave/SampleImport.cpp
+    Source/GUI/LookAndFeel.cpp
+    Source/GUI/Widgets.cpp
+    Source/GUI/OscPanel.cpp
+    Source/GUI/ModulationViews.cpp
+    Source/GUI/WaveEditor.cpp
+    Source/GUI/FxView.cpp
+    Source/GUI/ArpSeqView.cpp
+    Source/GUI/BrowserView.cpp
+    Source/GUI/GeneratorView.cpp
+    Source/GUI/MainView.cpp)
 
 # Shared code consumed by the plug-in and by the test runner.
 add_library(DeadwaveCore INTERFACE)
@@ -116,4 +128,17 @@ if(DEADWAVE_BUILD_TESTS)
     else()
         target_compile_options(DeadwaveTests PRIVATE -ffast-math -fno-finite-math-only)
     endif()
+
+    # Loads the built VST3 through JUCE's hosting layer (validates the real plug-in binary).
+    juce_add_console_app(DeadwaveHostTest PRODUCT_NAME "DeadwaveHostTest")
+    target_sources(DeadwaveHostTest PRIVATE Tests/HostTest.cpp)
+    target_compile_definitions(DeadwaveHostTest PRIVATE
+        JUCE_PLUGINHOST_VST3=1
+        JUCE_WEB_BROWSER=0
+        JUCE_USE_CURL=0)
+    target_link_libraries(DeadwaveHostTest PRIVATE
+        juce::juce_audio_processors
+        juce::juce_audio_utils
+        juce::juce_recommended_config_flags)
+    add_dependencies(DeadwaveHostTest DEADWAVE_VST3)
 endif()

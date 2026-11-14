@@ -1,6 +1,7 @@
 #pragma once
 
 #include "PluginProcessor.h"
+#include "GUI/LookAndFeel.h"
 
 namespace dw
 {
@@ -17,7 +18,10 @@ public:
 
 private:
     DeadwaveProcessor& processor;
+    std::unique_ptr<ui::DeadLookAndFeel> lookAndFeel;
     std::unique_ptr<juce::Component> content;
+    std::unique_ptr<juce::TooltipWindow> tooltips;
+    bool constructed = false;
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (DeadwaveEditor)
 };
 } // namespace dw

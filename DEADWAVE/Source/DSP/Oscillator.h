@@ -150,5 +150,46 @@ inline float slope (int mode, float s) noexcept
         default: return 1.0f;
     }
 }
+
+/** Non-real-time evaluation of the oscillator's output shape at phase p (for displays).
+    read(x) must return the raw table value at phase x. Mirrors Oscillator::renderWavetable exactly. */
+template <typename ReadFn>
+inline float displayValue (int mode, float s, float p, ReadFn&& read)
+{
+    p = p - std::floor (p);
+    const float a = std::abs (s);
+    switch (mode)
+    {
+        case 0: { const float k = std::exp2 (s * 3.0f); return read (p / (p + k * (1.0f - p))); }
+        case 1: { const float d = 0.5f + 0.48f * s; return read (p < d ? 0.5f * p / d : 0.5f + 0.5f * (p - d) / (1.0f - d)); }
+        case 2:
+        {
+            const float w = 1.0f - 0.95f * a;
+            if (s >= 0.0f) return read (p < w ? p / w : 0.0f);
+            const float st = 1.0f - w;
+            return read (p < st ? 0.0f : (p - st) / w);
+        }
+        case 3: { const float x = p * (1.0f + a * 15.0f); return read (x - std::floor (x)); }
+        case 4:
+        {
+            const float x = p * (1.0f + a * 7.0f);
+            return read (x - std::floor (x)) * (0.5f - 0.5f * std::cos (6.28318530718f * p));
+        }
+        case 5:
+        {
+            const float pm = p < 0.5f ? 2.0f * p : 2.0f - 2.0f * p;
+            const float s1 = read (p), s2 = read (juce::jmin (pm, 0.99999f));
+            return s1 + (s2 - s1) * a;
+        }
+        case 6:
+        {
+            if (a < 0.001f) return read (p);
+            const float q = std::exp2 (11.0f - 10.0f * a);
+            return read (std::floor (p * q) / q);
+        }
+        case 7: { const float x = p + s * 0.25f * std::sin (6.28318530718f * p); return read (x - std::floor (x)); }
+        default: return read (p);
+    }
+}
 } // namespace warp
 } // namespace dw

@@ -227,7 +227,8 @@ void Voice::buildTicks (const EngineContext& ctx, float dt) noexcept
         t.pan = param (ctx, P::osc (i, OscP::Pan));
         const bool keyTrack = b[P::osc (i, OscP::KeyTrack)] >= 0.5f;
         float p = keyTrack ? pitch : 60.0f;
-        p += b[P::osc (i, OscP::Octave)] * 12.0f + b[P::osc (i, OscP::Semi)] + param (ctx, P::osc (i, OscP::Fine)) * 0.01f;
+        p += b[P::osc (i, OscP::Octave)] * 12.0f + b[P::osc (i, OscP::Semi)] + param (ctx, P::osc (i, OscP::Fine)) * 0.01f
+           + param (ctx, P::osc (i, OscP::Pitch));
         p += ctx.pitchBendSemis;
         p += driftAmt * 0.15f * drift[i] + instabAmt * 0.08f * instab[i];
         t.freq = juce::jlimit (0.5f, (float) ctx.processRate * 0.45f, midiToHz (p));

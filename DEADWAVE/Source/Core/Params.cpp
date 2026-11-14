@@ -95,6 +95,8 @@ juce::String ParamSpec::format (float v, bool withUnit) const
         case Unit::dB:        return (v > 0.05f ? "+" : "") + trimNumber (v, 1) + u (" dB");
         case Unit::Semitones:
         {
+            if (kind == PKind::Float && std::abs (v - std::round (v)) > 0.05f)
+                return (v > 0 ? "+" : "") + trimNumber (v, 1) + u (" st");
             const int s = juce::roundToInt (v);
             return (s > 0 ? "+" : "") + juce::String (s) + u (" st");
         }
@@ -192,6 +194,7 @@ void addOsc (Builder& b, int i)
     b.integer (p + "oct", N + "Octave", "OCT", g, -4, 4, 0, Unit::None);
     b.integer (p + "semi", N + "Semitone", "SEMI", g, -12, 12, 0, Unit::Semitones);
     b.real (p + "fine", N + "Fine", "FINE", g, -100.0f, 100.0f, 0.0f, Unit::Cents, -1, true, true);
+    b.real (p + "pitch", N + "Pitch", "PITCH", g, -48.0f, 48.0f, 0.0f, Unit::Semitones, -1, true, true);
     b.toggle (p + "keytrack", N + "Key Track", "KEY", g, true);
     b.real (p + "wtpos", N + "Wave Position", "WT POS", g, 0.0f, 1.0f, 0.0f, Unit::Percent, -1, true, true);
     b.real (p + "bias", N + "Vertical Bias", "BIAS", g, -1.0f, 1.0f, 0.0f, Unit::Bipolar, -1, true, true);

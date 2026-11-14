@@ -3,12 +3,17 @@
 // band-limiting, Vertical Bias behaviour, real-time allocation freedom, state round-trips and presets.
 
 #include "PluginProcessor.h"
+#include "PluginEditor.h"
+#include "GUI/MainView.h"
 #include "Presets/PresetManager.h"
 #include "Core/Expression.h"
 #include "DSP/WaveGen.h"
 #include <chrono>
 #include <cstdlib>
 #include <new>
+#include <map>
+#include <set>
+#include <array>
 
 // ------------------------------------------------------------------ allocation tracking (per thread)
 static thread_local bool tTrackAllocs = false;
@@ -505,20 +510,76 @@ static void testState()
     std::printf ("  state size: %d bytes\n", (int) mb.getSize());
 }
 
+struct Features { float centroid, flatness, attack, sustainRatio, width, movement, level; };
+
+static Features analyseAudio (const std::vector<float>& l, const std::vector<float>& r, double sr)
+{
+    Features f {};
+    const int n = 4096;
+    double cSum = 0.0, flatSum = 0.0, wsum = 0.0;
+    std::vector<float> mono (l.size());
+    for (size_t i = 0; i < l.size(); ++i) mono[i] = 0.5f * (l[i] + r[i]);
+    std::vector<float> cents;
+    for (size_t start = 0; start + (size_t) n < (size_t) (1.4 * sr); start += (size_t) n / 2)
+    {
+        auto db = spectrumDb (mono, start, n);
+        double num = 0.0, den = 0.0, logSum = 0.0, linSum = 0.0;
+        for (int k = 2; k < n / 2; ++k)
+        {
+            const double mag = std::pow (10.0, db[(size_t) k] / 20.0);
+            num += mag * k; den += mag;
+            logSum += std::log (mag + 1e-12); linSum += mag;
+        }
+        if (den > 1e-6)
+        {
+            const double c = num / den * sr / n;
+            cents.push_back ((float) c);
+            cSum += c; wsum += 1.0;
+            flatSum += std::exp (logSum / (n / 2 - 2)) / (linSum / (n / 2 - 2) + 1e-12);
+        }
+    }
+    f.centroid = wsum > 0 ? (float) std::log2 (cSum / wsum + 1.0) : 0.0f;
+    f.flatness = wsum > 0 ? (float) (flatSum / wsum) : 0.0f;
+    // envelope
+    std::vector<float> env;
+    for (size_t i = 0; i + 480 < mono.size(); i += 480) env.push_back (rmsOf (mono, i, i + 480));
+    const float peak = *std::max_element (env.begin(), env.end());
+    int att = 0;
+    while (att < (int) env.size() && env[(size_t) att] < 0.5f * peak) ++att;
+    f.attack = (float) att * 0.01f;
+    const size_t at12 = juce::jmin (env.size() - 1, (size_t) 120);
+    f.sustainRatio = peak > 0 ? env[at12] / peak : 0.0f;
+    double side = 0.0, mid = 0.0;
+    for (size_t i = 0; i < l.size(); ++i) { const double m = l[i] + r[i], sd = l[i] - r[i]; mid += m * m; side += sd * sd; }
+    f.width = (float) (side / (mid + 1e-9));
+    double mv = 0.0;
+    for (size_t i = 1; i < cents.size(); ++i) mv += std::abs (std::log2 ((cents[i] + 1) / (cents[i - 1] + 1)));
+    f.movement = cents.size() > 1 ? (float) (mv / (double) (cents.size() - 1)) : 0.0f;
+    f.level = gainToDb (peak);
+    return f;
+}
+
 static void testFactoryPresets()
 {
     section ("Factory presets");
     const auto& list = factoryPresets();
-    std::printf ("  %d factory presets\n", (int) list.size());
+    std::map<juce::String, int> perCat;
+    for (auto& p : list) perCat[p.category]++;
+    std::printf ("  %d factory presets in %d categories:", (int) list.size(), (int) perCat.size());
+    for (auto& [c, n] : perCat) std::printf (" %s %d,", c.toRawUTF8(), n);
+    std::printf ("\n");
+    std::set<juce::String> names;
+    for (auto& p : list) names.insert (p.name);
+    CHECK (names.size() == list.size(), "factory preset names are unique");
+
     Rig r (48000.0, 512);
     int bad = 0, silent = 0, loud = 0;
     double worstRtf = 0.0;
     juce::String worstName;
+    std::vector<Features> feats;
     for (int i = 0; i < (int) list.size(); ++i)
     {
         r.proc->getPresetManager().load (i);
-        r.pump (5);
-        // Rebuild tables synchronously for the test: wait until builder publishes.
         for (int k = 0; k < 40; ++k) r.pump (5);
         std::vector<float> l, rr;
         auto t0 = std::chrono::high_resolution_clock::now();
@@ -527,17 +588,45 @@ static void testFactoryPresets()
         const double rtf = std::chrono::duration<double> (t1 - t0).count() / 1.5;
         if (rtf > worstRtf) { worstRtf = rtf; worstName = list[(size_t) i].name; }
         const bool fin = allFinite (l) && allFinite (rr);
-        const float rms = rmsOf (l, 2400, 48000) + rmsOf (rr, 2400, 48000);
+        const float rms = rmsOf (l, 2400, 72000) + rmsOf (rr, 2400, 72000);
         const float pk = juce::jmax (peakOf (l), peakOf (rr));
         if (! fin) { ++bad; std::printf ("  NON-FINITE: %s\n", list[(size_t) i].name.toRawUTF8()); }
         if (rms < 0.003f) { ++silent; std::printf ("  near-silent: %s (rms %.5f)\n", list[(size_t) i].name.toRawUTF8(), rms); }
         if (pk > 2.5f) { ++loud; std::printf ("  hot: %s (peak %.2f)\n", list[(size_t) i].name.toRawUTF8(), pk); }
+        feats.push_back (fin ? analyseAudio (l, rr, r.sr) : Features {});
         r.proc->getEngine().panic();
+        std::vector<float> flushL, flushR;
+        r.render (0.05, {}, flushL, flushR);
     }
     CHECK (bad == 0, "every factory preset renders finite audio");
     CHECK (silent == 0, "every factory preset makes sound");
     CHECK (loud == 0, "no factory preset peaks above +8 dBFS");
     std::printf ("  heaviest preset: %s at %.1f%% of one core (4-note chord)\n", worstName.toRawUTF8(), worstRtf * 100.0);
+
+    // ---- distinctness: z-scored audio features, nearest neighbour per preset --------------------
+    const int nf = 7;
+    std::vector<std::array<double, 7>> v;
+    for (auto& f : feats) v.push_back ({ f.centroid, f.flatness, std::log (f.attack + 0.01), f.sustainRatio, std::sqrt (f.width), f.movement, f.level / 10.0 });
+    std::array<double, 7> mean {}, sd {};
+    for (auto& x : v) for (int k = 0; k < nf; ++k) mean[(size_t) k] += x[(size_t) k] / (double) v.size();
+    for (auto& x : v) for (int k = 0; k < nf; ++k) sd[(size_t) k] += std::pow (x[(size_t) k] - mean[(size_t) k], 2.0) / (double) v.size();
+    for (auto& s2 : sd) s2 = std::sqrt (s2) + 1e-9;
+    struct Pair { double d; int a, b; };
+    std::vector<Pair> pairs;
+    for (size_t a = 1; a < v.size(); ++a)
+        for (size_t b = a + 1; b < v.size(); ++b)
+        {
+            double d = 0.0;
+            for (int k = 0; k < nf; ++k) d += std::pow ((v[a][(size_t) k] - v[b][(size_t) k]) / sd[(size_t) k], 2.0);
+            pairs.push_back ({ std::sqrt (d), (int) a, (int) b });
+        }
+    std::sort (pairs.begin(), pairs.end(), [] (const Pair& x, const Pair& y) { return x.d < y.d; });
+    std::printf ("  closest pairs by audio features (z-distance; lower = more similar):\n");
+    for (int k = 0; k < 8 && k < (int) pairs.size(); ++k)
+        std::printf ("    %.3f  %s  <->  %s\n", pairs[(size_t) k].d, list[(size_t) pairs[(size_t) k].a].name.toRawUTF8(), list[(size_t) pairs[(size_t) k].b].name.toRawUTF8());
+    int nearDup = 0;
+    for (auto& p : pairs) if (p.d < 0.15) ++nearDup;
+    std::printf ("  pairs below 0.15: %d of %d\n", nearDup, (int) pairs.size());
 }
 
 static void testPerformance()
@@ -566,10 +655,44 @@ static void testPerformance()
     }
 }
 
+static void snapshots (const juce::File& dir, int presetIndex)
+{
+    dir.createDirectory();
+    Rig r (48000.0, 512);
+    if (presetIndex >= 0) r.proc->getPresetManager().load (presetIndex);
+    for (int k = 0; k < 20; ++k) r.pump (5);
+    std::vector<float> l, rr;
+    r.render (0.4, { { 0, on (48) }, { 0, on (55) }, { 0, on (60) } }, l, rr);
+    std::unique_ptr<juce::AudioProcessorEditor> ed (r.proc->createEditor());
+    ed->setSize (1280, 820);
+    auto* view = dynamic_cast<ui::MainView*> (ed->getChildComponent (0));
+    if (view == nullptr) { std::printf ("no main view\n"); return; }
+    auto save = [&] (const juce::String& name)
+    {
+        for (int k = 0; k < 8; ++k) r.pump (20);
+        auto img = ed->createComponentSnapshot (ed->getLocalBounds(), true, 1.0f);
+        auto f = dir.getChildFile (name + ".png");
+        f.deleteFile();
+        juce::FileOutputStream out (f);
+        juce::PNGImageFormat png;
+        png.writeImageToStream (img, out);
+        std::printf ("  wrote %s\n", f.getFullPathName().toRawUTF8());
+    };
+    const char* pages[] = { "osc", "mod", "matrix", "fx", "arpseq", "generate" };
+    for (int i = 0; i < 6; ++i) { view->showPage (i); save (juce::String ("page_") + pages[i]); }
+    view->openWaveEditor (0);
+    save ("wave_editor");
+}
+
 int main (int argc, char** argv)
 {
     juce::ScopedJuceInitialiser_GUI init;
     const bool quick = argc > 1 && juce::String (argv[1]) == "--quick";
+    if (argc > 2 && juce::String (argv[1]) == "--snapshot")
+    {
+        snapshots (juce::File (argv[2]), argc > 3 ? juce::String (argv[3]).getIntValue() : -1);
+        return 0;
+    }
 
     testRegistry();
     testExpression();
