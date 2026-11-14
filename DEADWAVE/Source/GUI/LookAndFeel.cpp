@@ -47,64 +47,65 @@ juce::Typeface::Ptr DeadLookAndFeel::getTypefaceForFont (const juce::Font& f)
 void DeadLookAndFeel::paintKnob (juce::Graphics& g, juce::Rectangle<float> b, float pos, bool bipolar, bool enabled,
                                  float modLo, float modHi, float modCur)
 {
+    // Geometry and colours follow DEADNOISE (dnui::LookAndFeel::drawRotarySlider).
     using namespace Colours;
-    const float size = juce::jmin (b.getWidth(), b.getHeight());
-    const auto c = b.getCentre();
-    const float r = size * 0.5f - 2.0f;
-    if (r < 4.0f) return;
-
+    const bool large = juce::jmin (b.getWidth(), b.getHeight()) >= 64.0f;
+    const bool tiny = juce::jmin (b.getWidth(), b.getHeight()) < 30.0f;
+    auto bounds = b.reduced (large ? 6.0f : (tiny ? 2.0f : 4.0f));
+    const float radius = juce::jmin (bounds.getWidth(), bounds.getHeight()) * 0.5f;
+    if (radius < 4.0f) return;
+    const auto centre = bounds.getCentre();
+    const float lineW = large ? 4.0f : (tiny ? 2.0f : 3.0f);
+    const float arcR = radius - lineW * 0.5f;
     const float start = juce::MathConstants<float>::pi * 1.25f;
     const float end = juce::MathConstants<float>::pi * 2.75f;
-    const float stroke = juce::jlimit (1.6f, 3.4f, r * 0.095f);
-    const float arcR = r - stroke * 0.5f;
+    const float angle = start + pos * (end - start);
 
     juce::Path trackArc;
-    trackArc.addCentredArc (c.x, c.y, arcR, arcR, 0.0f, start, end, true);
+    trackArc.addCentredArc (centre.x, centre.y, arcR, arcR, 0.0f, start, end, true);
     g.setColour (track);
-    g.strokePath (trackArc, juce::PathStrokeType (stroke, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
+    g.strokePath (trackArc, juce::PathStrokeType (lineW, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
 
-    const float angle = start + pos * (end - start);
     const float from = bipolar ? (start + end) * 0.5f : start;
     if (std::abs (angle - from) > 0.001f)
     {
         juce::Path valueArc;
-        valueArc.addCentredArc (c.x, c.y, arcR, arcR, 0.0f, juce::jmin (from, angle), juce::jmax (from, angle), true);
-        g.setColour (enabled ? text : secondary);
-        g.strokePath (valueArc, juce::PathStrokeType (stroke, juce::PathStrokeType::curved, juce::PathStrokeType::butt));
+        valueArc.addCentredArc (centre.x, centre.y, arcR, arcR, 0.0f, juce::jmin (from, angle), juce::jmax (from, angle), true);
+        g.setColour (enabled ? text : muted);
+        g.strokePath (valueArc, juce::PathStrokeType (lineW, juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 
-    // Modulation range (amber) just inside the value arc.
+    const float bodyR = arcR - lineW * 2.2f;
+
+    // DEADWAVE addition: modulation range in amber, in the gap between arc and body.
     if (modLo >= 0.0f && modHi >= 0.0f && std::abs (modHi - modLo) > 0.001f)
     {
-        const float mr = arcR - stroke * 1.4f;
+        const float mr = arcR - lineW * 1.2f;
         juce::Path modArc;
         const float a0 = start + juce::jlimit (0.0f, 1.0f, juce::jmin (modLo, modHi)) * (end - start);
         const float a1 = start + juce::jlimit (0.0f, 1.0f, juce::jmax (modLo, modHi)) * (end - start);
-        modArc.addCentredArc (c.x, c.y, mr, mr, 0.0f, a0, a1, true);
+        modArc.addCentredArc (centre.x, centre.y, mr, mr, 0.0f, a0, a1, true);
         g.setColour (accent.withAlpha (enabled ? 0.9f : 0.4f));
-        g.strokePath (modArc, juce::PathStrokeType (juce::jmax (1.2f, stroke * 0.6f), juce::PathStrokeType::curved, juce::PathStrokeType::butt));
+        g.strokePath (modArc, juce::PathStrokeType (juce::jmax (1.2f, lineW * 0.55f), juce::PathStrokeType::curved, juce::PathStrokeType::rounded));
     }
 
-    const float bodyR = r * 0.70f;
     g.setColour (raised);
-    g.fillEllipse (c.x - bodyR, c.y - bodyR, bodyR * 2.0f, bodyR * 2.0f);
-    g.setColour (knobRim);
-    g.drawEllipse (c.x - bodyR, c.y - bodyR, bodyR * 2.0f, bodyR * 2.0f, 1.0f);
+    g.fillEllipse (centre.x - bodyR, centre.y - bodyR, bodyR * 2.0f, bodyR * 2.0f);
+    g.setColour (border);
+    g.drawEllipse (centre.x - bodyR, centre.y - bodyR, bodyR * 2.0f, bodyR * 2.0f, 1.0f);
 
-    const float shownAngle = modCur >= 0.0f ? start + juce::jlimit (0.0f, 1.0f, modCur) * (end - start) : angle;
     if (modCur >= 0.0f)
     {
-        const auto dot = c.getPointOnCircumference (arcR, angle);
-        juce::ignoreUnused (dot);
-        const auto md = c.getPointOnCircumference (arcR - stroke * 1.4f, shownAngle);
+        const float ma = start + juce::jlimit (0.0f, 1.0f, modCur) * (end - start);
+        const auto md = centre.getPointOnCircumference (arcR - lineW * 1.2f, ma);
         g.setColour (accent);
         g.fillEllipse (md.x - 2.2f, md.y - 2.2f, 4.4f, 4.4f);
     }
 
-    const auto p0 = c.getPointOnCircumference (bodyR * 0.42f, angle);
-    const auto p1 = c.getPointOnCircumference (bodyR * 0.86f, angle);
-    g.setColour (enabled ? text : secondary);
-    g.drawLine ({ p0, p1 }, juce::jlimit (1.5f, 2.8f, r * 0.075f));
+    const auto p1 = centre.getPointOnCircumference (bodyR * 0.35f, angle);
+    const auto p2 = centre.getPointOnCircumference (bodyR * 0.85f, angle);
+    g.setColour (enabled ? text : muted);
+    g.drawLine ({ p1, p2 }, large ? 2.5f : 2.0f);
 }
 
 void DeadLookAndFeel::drawRotarySlider (juce::Graphics& g, int x, int y, int w, int h, float pos, float, float, juce::Slider& s)
@@ -186,46 +187,44 @@ void DeadLookAndFeel::drawButtonBackground (juce::Graphics& g, juce::Button& b, 
         if (over) { g.setColour (raised); g.fillRoundedRectangle (r, Metrics::controlRadius); }
         return;
     }
-    g.setColour (on ? text : (down ? track : (over ? juce::Colour (0xff202024) : raised)));
+    g.setColour (on ? text : (down ? track : raised));
     g.fillRoundedRectangle (r, Metrics::controlRadius);
-    if (! on)
-    {
-        g.setColour (border);
-        g.drawRoundedRectangle (r, Metrics::controlRadius, 1.0f);
-    }
+    g.setColour (on ? text : (over ? muted : border));
+    g.drawRoundedRectangle (r, Metrics::controlRadius, 1.0f);
 }
 
 void DeadLookAndFeel::drawButtonText (juce::Graphics& g, juce::TextButton& b, bool, bool)
 {
     using namespace Colours;
     const bool on = b.getToggleState() && (bool) b.getProperties().getWithDefault ("lightWhenOn", true);
-    const float h = (float) b.getProperties().getWithDefault ("fontHeight", 11.5f);
+    const float h = (float) b.getProperties().getWithDefault ("fontHeight", 12.0f);
     auto c = on ? bg : (b.isEnabled() ? text : muted);
     if ((bool) b.getProperties().getWithDefault ("dimText", false) && ! on) c = secondary;
     drawTracked (g, b.getButtonText().toUpperCase(), b.getLocalBounds().toFloat(), font (h, true), c,
-                 juce::Justification::centred, 0.1f);
+                 juce::Justification::centred, 0.08f);
 }
 
 void DeadLookAndFeel::drawToggleButton (juce::Graphics& g, juce::ToggleButton& b, bool over, bool)
 {
+    // DEADNOISE switch: 34 x 18, white track + dark knob when on (scaled down for small rows).
     using namespace Colours;
-    // DEADNOISE pill switch: track #2C2C31, knob #8E8E93 (off) / #F2F2F2 (on)
     auto r = b.getLocalBounds().toFloat();
-    const float h = juce::jmin (r.getHeight(), 18.0f);
-    auto pill = juce::Rectangle<float> (r.getX() + 1.0f, r.getCentreY() - h * 0.5f, h * 1.9f, h);
+    const float sh = juce::jmin (18.0f, r.getHeight());
+    const float sw = sh * 34.0f / 18.0f;
+    juce::Rectangle<float> swr (r.getX(), r.getCentreY() - sh * 0.5f, sw, sh);
     const bool on = b.getToggleState();
-    g.setColour (on ? juce::Colour (0xff4a4a50) : track);
-    g.fillRoundedRectangle (pill, h * 0.5f);
-    const float kd = h - 4.0f;
-    const float kx = on ? pill.getRight() - kd - 2.0f : pill.getX() + 2.0f;
-    g.setColour (on ? text : (over ? juce::Colour (0xffa0a0a5) : secondary));
-    g.fillEllipse (kx, pill.getY() + 2.0f, kd, kd);
-
+    g.setColour (on ? text : track);
+    g.fillRoundedRectangle (swr, sh * 0.5f);
+    if (over && ! on) { g.setColour (muted); g.drawRoundedRectangle (swr, sh * 0.5f, 1.0f); }
+    const float d = sh - 4.0f;
+    const float cx = on ? swr.getRight() - d - 2.0f : swr.getX() + 2.0f;
+    g.setColour (on ? bg : secondary);
+    g.fillEllipse (cx, swr.getY() + 2.0f, d, d);
     if (b.getButtonText().isNotEmpty())
     {
-        auto tr = r.withLeft (pill.getRight() + 6.0f);
-        drawTracked (g, b.getButtonText().toUpperCase(), tr, font (h >= 18.0f ? 12.0f : 10.5f, true), b.isEnabled() ? text : muted,
-                     juce::Justification::centredLeft, 0.08f);
+        g.setColour (! b.isEnabled() ? muted : (on ? text : secondary));
+        g.setFont (uiFont (sh >= 18.0f ? 12.0f : 10.5f, true, 0.08f));
+        g.drawText (b.getButtonText().toUpperCase(), r.withTrimmedLeft (sw + (sh >= 18.0f ? 10.0f : 6.0f)), juce::Justification::centredLeft, false);
     }
 }
 

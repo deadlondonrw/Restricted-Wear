@@ -1,0 +1,71 @@
+DEADWAVE - INSTALLATION (Windows x64, FL Studio)
+================================================
+
+What you have
+-------------
+DEADWAVE-FL-STUDIO-WINDOWS-x64.zip contains exactly one folder:
+
+    DEADWAVE.vst3\
+        Contents\
+            x86_64-win\DEADWAVE.vst3      <- the 64-bit plugin binary
+            Resources\moduleinfo.json     <- VST3 metadata
+
+"DEADWAVE.vst3" is a VST3 *bundle* (a folder). Keep it as a folder; do not
+rename or move the file inside it.
+
+(DEADWAVE-FL-STUDIO-WINDOWS-x64-SINGLE-FILE.zip contains the same binary as a
+single file named DEADWAVE.vst3, for setups where bundle folders are not
+picked up. Use one of the two, not both.)
+
+1. Unblock the download (important)
+-----------------------------------
+Right-click DEADWAVE-FL-STUDIO-WINDOWS-x64.zip -> Properties.
+If you see "This file came from another computer..." tick "Unblock" -> OK.
+(The plugin is not code-signed; an unblocked ZIP avoids Windows blocking it.)
+
+2. Extract into D:\Plugins
+--------------------------
+Right-click the ZIP -> "Extract All..." and enter exactly:
+
+    D:\Plugins
+
+Windows suggests a destination like
+"D:\Plugins\DEADWAVE-FL-STUDIO-WINDOWS-x64" - delete that extra part so the
+destination is only D:\Plugins, then click Extract.
+
+After extracting, this must exist:
+
+    D:\Plugins\DEADWAVE.vst3\Contents\x86_64-win\DEADWAVE.vst3
+
+If an older DEADWAVE.vst3 is already in D:\Plugins, close FL Studio and delete
+it first.
+
+3. Scan in FL Studio
+--------------------
+1. Open FL Studio.
+2. Options -> Manage plugins.
+3. Make sure D:\Plugins is listed under "Plugin search paths".
+4. Tick "Verify plugins", then click "Find installed plugins".
+5. Look for "DEADWAVE" (vendor "DEADWAVE", type VST3, generator / instrument).
+   Click the star to add it to your favourites.
+
+If FL Studio does not list it, run support\LINK-DEADWAVE-FROM-D-PLUGINS.bat
+(creates a 0-byte link from the standard VST3 folder to D:\Plugins\DEADWAVE.vst3,
+nothing is copied to C:) and rescan. support\DEADWAVE-diagnose.ps1 prints a
+read-only report of what Windows and FL Studio see.
+
+4. Play it
+----------
+1. Channel rack -> + -> DEADWAVE. Draw notes in the piano roll.
+2. Presets: click the preset name in the header (BROWSE) or use < >.
+3. Click an oscillator's waveform to open the Wave Editor.
+4. Drag a modulation source from the bottom bar onto any knob to modulate it.
+
+Glide / slides in FL Studio
+---------------------------
+Set VOICE & GLIDE to LEGATO (or MONO) and GLIDE to OVERLAP, then make notes
+overlap in the piano roll: the pitch glides from the first note to the next.
+GLIDE TIME and CURVE set the speed and shape. For bends, set BEND + / BEND - to
+the same range you use in FL Studio's pitch automation. FL Studio's own "slide
+notes" are an FL feature for its native plug-ins; use overlap glide with
+DEADWAVE instead.

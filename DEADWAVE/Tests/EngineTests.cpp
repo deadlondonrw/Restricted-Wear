@@ -11,6 +11,7 @@
 #include <chrono>
 #include <cstdlib>
 #include <new>
+#include <thread>
 #include <map>
 #include <set>
 #include <array>
@@ -508,6 +509,16 @@ static void testState()
     CHECK (b.proc->getWave (1).getNumFrames() == 8, "edited wavetable restored");
     CHECK (b.proc->getRouting (0).dstId == "osc2_wtpos", "matrix restored");
     std::printf ("  state size: %d bytes\n", (int) mb.getSize());
+
+    // Hosts may restore state off the message thread: parameters apply at once, assets via the message thread.
+    Rig c;
+    std::thread t ([&] { c.proc->setStateInformation (mb.getData(), (int) mb.getSize()); });
+    t.join();
+    juce::MemoryBlock pending;
+    c.proc->getStateInformation (pending);
+    CHECK (pending == mb, "state saved before the async apply returns the restored state");
+    c.pump (100);
+    CHECK (c.proc->captureState().toXmlString() == sa, "background-thread restore completes on the message thread");
 }
 
 struct Features { float centroid, flatness, attack, sustainRatio, width, movement, level; };
@@ -690,7 +701,7 @@ int main (int argc, char** argv)
     const bool quick = argc > 1 && juce::String (argv[1]) == "--quick";
     if (argc > 2 && juce::String (argv[1]) == "--snapshot")
     {
-        snapshots (juce::File (argv[2]), argc > 3 ? juce::String (argv[3]).getIntValue() : -1);
+        snapshots (juce::File::getCurrentWorkingDirectory().getChildFile (argv[2]), argc > 3 ? juce::String (argv[3]).getIntValue() : -1);
         return 0;
     }
 

@@ -10,12 +10,16 @@ void StatusChip::paint (juce::Graphics& g)
     g.fillRoundedRectangle (r, Metrics::controlRadius);
     g.setColour (Colours::border);
     g.drawRoundedRectangle (r, Metrics::controlRadius, 1.0f);
+    // DEADNOISE status chip: dot, 9.5 pt label (textFaint, 0.14), 10.5 pt value (text, 0.06)
     g.setColour (on ? Colours::text : Colours::muted);
     g.fillEllipse (12.0f, r.getCentreY() - 3.0f, 6.0f, 6.0f);
-    drawTracked (g, label, { 26.0f, 0.0f, 70.0f, r.getHeight() }, font (10.0f, true), Colours::muted, juce::Justification::centredLeft, 0.12f);
+    g.setFont (uiFont (9.5f, true, 0.14f));
+    g.setColour (Colours::muted);
+    const int lw = juce::roundToInt (juce::GlyphArrangement::getStringWidth (g.getCurrentFont(), label)) + 8;
+    g.drawText (label, juce::Rectangle<int> (24, 0, lw, getHeight()), juce::Justification::centredLeft, false);
+    g.setFont (uiFont (10.5f, true, 0.06f));
     g.setColour (Colours::text);
-    g.setFont (font (12.0f, true));
-    g.drawText (value, r.withTrimmedLeft (90.0f).withTrimmedRight (10.0f), juce::Justification::centredLeft, false);
+    g.drawText (value, juce::Rectangle<int> (24 + lw, 0, getWidth() - 34 - lw, getHeight()), juce::Justification::centredLeft, false);
 }
 
 // ========================================================================================= osc page
@@ -141,8 +145,13 @@ void MainView::paint (juce::Graphics& g)
 {
     g.fillAll (Colours::bg);
     // DEADNOISE-family logotype
-    drawTracked (g, "DEADWAVE", { 18.0f, 12.0f, 260.0f, 30.0f }, font (24.0f, false, true), Colours::text, juce::Justification::centredLeft, 0.36f);
-    drawTracked (g, "WAVETABLE SYNTHESIZER", { 20.0f, 41.0f, 260.0f, 12.0f }, font (9.5f, true), Colours::muted, juce::Justification::centredLeft, 0.2f);
+    // Same header typography as DEADNOISE (26 pt bold, tracking 0.32; subtitle 9 pt bold, 0.22).
+    g.setColour (Colours::text);
+    g.setFont (uiFont (26.0f, true, 0.32f));
+    g.drawText ("DEADWAVE", juce::Rectangle<int> (18, 8, 300, 30), juce::Justification::centredLeft);
+    g.setColour (Colours::muted);
+    g.setFont (uiFont (9.0f, true, 0.22f));
+    g.drawText ("WAVETABLE SYNTHESIZER", juce::Rectangle<int> (20, 40, 300, 12), juce::Justification::centredLeft);
 
     // modulation source strip
     auto strip = juce::Rectangle<float> (12.0f, (float) Metrics::baseHeight - 44.0f, (float) Metrics::baseWidth - 24.0f, 34.0f);

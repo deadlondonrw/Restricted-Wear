@@ -38,6 +38,7 @@ DeadwaveProcessor::DeadwaveProcessor()
 DeadwaveProcessor::~DeadwaveProcessor()
 {
     stopTimer();
+    cancelPendingUpdate();
     builder.signalThreadShouldExit();
     builder.stopThread (4000);
 }
@@ -81,23 +82,51 @@ juce::AudioProcessorEditor* DeadwaveProcessor::createEditor()
 // ========================================================================================= state
 void DeadwaveProcessor::getStateInformation (juce::MemoryBlock& destData)
 {
-    auto state = captureState();
+    juce::ValueTree state;
+    {
+        const juce::ScopedLock sl (stateLock);
+        state = pendingState.isValid() ? pendingState.createCopy() : captureState();
+    }
     if (auto xml = state.createXml())
         copyXmlToBinary (*xml, destData);
 }
 
 void DeadwaveProcessor::setStateInformation (const void* data, int sizeInBytes)
 {
-    if (auto xml = getXmlFromBinary (data, sizeInBytes))
+    auto xml = getXmlFromBinary (data, sizeInBytes);
+    if (xml == nullptr) return;
+    auto tree = juce::ValueTree::fromXml (*xml);
+    if (! tree.isValid() || ! tree.hasType ("DEADWAVE")) return;
+
+    if (juce::MessageManager::existsAndIsCurrentThread())
     {
-        auto tree = juce::ValueTree::fromXml (*xml);
-        if (tree.isValid())
-            applyState (tree);
+        applyState (tree);
+        return;
     }
+    // Off the message thread: parameters are atomic and applied now; wavetables, samples and the
+    // matrix are applied on the message thread (the UI owns those objects).
+    applyParameters (tree);
+    {
+        const juce::ScopedLock sl (stateLock);
+        pendingState = tree;
+    }
+    triggerAsyncUpdate();
+}
+
+void DeadwaveProcessor::handleAsyncUpdate()
+{
+    juce::ValueTree tree;
+    {
+        const juce::ScopedLock sl (stateLock);
+        tree = pendingState;
+    }
+    if (tree.isValid())
+        applyState (tree);
 }
 
 juce::ValueTree DeadwaveProcessor::captureState() const
 {
+    const juce::ScopedLock sl (stateLock);
     juce::ValueTree root ("DEADWAVE");
     root.setProperty ("version", 1, nullptr);
     root.setProperty ("preset", currentPresetName, nullptr);
@@ -176,6 +205,16 @@ juce::ValueTree DeadwaveProcessor::captureState() const
 void DeadwaveProcessor::applyState (const juce::ValueTree& root)
 {
     if (! root.hasType ("DEADWAVE")) return;
+    const juce::ScopedLock sl (stateLock);
+    applyParameters (root);
+    applyAssets (root);
+    pendingState = {};
+    ++stateSerial;
+    sendChangeMessage();
+}
+
+void DeadwaveProcessor::applyParameters (const juce::ValueTree& root)
+{
     const auto& reg = Registry::get();
 
     // Parameters: defaults first so absent IDs (compact storage / older versions) are deterministic.
@@ -194,6 +233,11 @@ void DeadwaveProcessor::applyState (const juce::ValueTree& root)
         if (std::abs (p->getValue() - norm) > 1.0e-7f)
             p->setValueNotifyingHost (norm);
     }
+}
+
+void DeadwaveProcessor::applyAssets (const juce::ValueTree& root)
+{
+    const auto& reg = Registry::get();
 
     // Wavetables
     const auto w = root.getChildWithName ("WAVES");
@@ -270,8 +314,6 @@ void DeadwaveProcessor::applyState (const juce::ValueTree& root)
     if (ui.isValid()) uiState = ui.createCopy();
 
     currentPresetName = root.getProperty ("preset", "Init").toString();
-    ++stateSerial;
-    sendChangeMessage();
 }
 
 void DeadwaveProcessor::resetToInit()
@@ -290,6 +332,8 @@ void DeadwaveProcessor::waveChanged (int osc)
 
 void DeadwaveProcessor::rebuildDirtyTables()
 {
+    const juce::ScopedTryLock sl (stateLock);
+    if (! sl.isLocked()) return; // a state restore is running; try again on the next tick
     for (int i = 0; i < kNumOsc; ++i)
     {
         const auto v = waves[i].getVersion();

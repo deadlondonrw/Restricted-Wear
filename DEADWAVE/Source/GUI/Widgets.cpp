@@ -11,8 +11,8 @@ void Panel::paint (juce::Graphics& g)
     g.setColour (highlighted ? Colours::muted : Colours::border);
     g.drawRoundedRectangle (r, Metrics::panelRadius, 1.0f);
     if (title.isNotEmpty())
-        drawTracked (g, title, juce::Rectangle<float> (12.0f, 9.0f, r.getWidth() - 24.0f, 14.0f), font (11.0f, true),
-                     Colours::secondary, juce::Justification::centredLeft, 0.12f);
+        drawTracked (g, title, juce::Rectangle<float> (12.0f, 9.0f, r.getWidth() - 24.0f, 14.0f), font (10.5f, true),
+                     Colours::secondary, juce::Justification::centredLeft, 0.16f);
 }
 
 // ======================================================================================= param knob
@@ -43,7 +43,7 @@ void ParamKnob::paint (juce::Graphics& g)
         if (modDrag && modDragSlot >= 0)
             t = "MOD " + juce::String (juce::roundToInt (proc.getValue (P::modAmt (modDragSlot)) * 100.0f)) + "%";
         drawTracked (g, showValue ? t : t.toUpperCase(), labelArea, font (compact ? 9.5f : 10.5f, true),
-                     dropHover ? Colours::accent : (showValue ? Colours::text : Colours::muted), juce::Justification::centred,
+                     dropHover ? Colours::accent : (showValue ? Colours::text : (isEnabled() ? Colours::secondary : Colours::muted)), juce::Justification::centred,
                      showValue ? 0.02f : (compact ? 0.06f : 0.12f));
     }
 
@@ -301,7 +301,7 @@ void Segmented::paint (juce::Graphics& g)
         if (on)
         {
             g.setColour (Colours::text);
-            g.fillRoundedRectangle (cell, Metrics::controlRadius - 1.0f);
+            g.fillRoundedRectangle (cell, 3.0f);
         }
         drawTracked (g, items[i].toUpperCase(), cell, font (fontHeight, true), on ? Colours::bg : (isEnabled() ? Colours::secondary : Colours::muted),
                      juce::Justification::centred, 0.08f);

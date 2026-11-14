@@ -660,7 +660,7 @@ void VoicePanel::resized()
     layoutRow (r.removeFromTop (50), { &voices, &time, &curve, &vel }, 44);
     r.removeFromTop (2);
     auto row = r.removeFromTop (20).withSizeKeepingCentre (r.getWidth(), 16);
-    constRate.setBounds (row.removeFromLeft (64));
+    constRate.setBounds (row.removeFromLeft (68));
     hard.setBounds (row.removeFromLeft (66));
     ret.setBounds (row);
     r.removeFromTop (4);

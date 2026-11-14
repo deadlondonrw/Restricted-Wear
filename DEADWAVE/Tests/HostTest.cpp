@@ -4,8 +4,8 @@
 #include <juce_audio_processors/juce_audio_processors.h>
 #include <juce_gui_basics/juce_gui_basics.h>
 
-static int failures = 0;
-#define EXPECT(c, msg) do { if (! (c)) { ++failures; std::printf ("  FAIL: %s\n", msg); } else std::printf ("  ok: %s\n", msg); } while (0)
+static int failures = 0, checks = 0;
+#define EXPECT(c, msg) do { ++checks; if (! (c)) { ++failures; std::printf ("  FAIL: %s\n", msg); } else std::printf ("  ok: %s\n", msg); } while (0)
 
 int main (int argc, char** argv)
 {
@@ -94,6 +94,7 @@ int main (int argc, char** argv)
     plugin->releaseResources();
     plugin.reset();
     second.reset();
-    std::printf ("%d failures\n", failures);
+    std::printf ("%d checks, %d failures\n", checks, failures);
+    if (failures == 0) std::printf ("HOST TEST PASSED\n");
     return failures == 0 ? 0 : 1;
 }

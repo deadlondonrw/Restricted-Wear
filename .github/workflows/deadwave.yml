@@ -1,43 +1,286 @@
 name: DEADWAVE
 
+# Same pipeline as DEADNOISE:
+# 1. build          MSVC Release (static runtime) of the VST3 instrument, packaged as
+#                   DEADWAVE-FL-STUDIO-WINDOWS-x64.zip (+ single-file variant), extracted to
+#                   D:\Plugins and tested there (bundle checks, engine tests, Steinberg validator,
+#                   pluginval 10, JUCE VST3 host test, Carla scan, UI screenshots on Windows).
+# 2. clean-machine  A second Windows runner gets only the ZIPs and the test tools and repeats the tests.
+# 3. publish        TEST_REPORT.txt from the real logs; deliverables committed to DEADWAVE/bin.
+# 4. linux          Fast Linux build + tests.
+
 on:
   push:
+    branches: [ 'claude/**' ]
     paths:
-      - "DEADWAVE/**"
-      - ".github/workflows/deadwave.yml"
+      - 'DEADWAVE/Source/**'
+      - 'DEADWAVE/Tests/**'
+      - 'DEADWAVE/packaging/**'
+      - 'DEADWAVE/support/**'
+      - 'DEADWAVE/CMakeLists.txt'
+      - '.github/workflows/deadwave.yml'
   workflow_dispatch:
 
+permissions:
+  contents: write
+
+concurrency:
+  group: deadwave-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  ZIP_NAME: DEADWAVE-FL-STUDIO-WINDOWS-x64.zip
+  ZIP_SINGLE: DEADWAVE-FL-STUDIO-WINDOWS-x64-SINGLE-FILE.zip
+  PLUGIN_DIR: 'D:\Plugins'
+
 jobs:
-  windows:
-    name: Windows x64 (MSVC) - VST3
-    runs-on: windows-latest
-    timeout-minutes: 60
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: bash
+    outputs:
+      version: ${{ steps.ver.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Configure
-        run: cmake -S DEADWAVE -B build -G "Visual Studio 17 2022" -A x64 -DDEADWAVE_BUILD_TESTS=ON
+      - id: ver
+        name: Read version
+        run: echo "version=$(sed -n 's/^project(DEADWAVE VERSION \([0-9.]*\).*/\1/p' DEADWAVE/CMakeLists.txt)" >> "$GITHUB_OUTPUT"
 
-      - name: Build VST3, Standalone and tests
-        run: cmake --build build --config Release --parallel --target DEADWAVE_VST3 DEADWAVE_Standalone DeadwaveTests DeadwaveHostTest
+      - name: Fetch JUCE 8.0.15
+        run: git clone --depth 1 --branch 8.0.15 https://github.com/juce-framework/JUCE.git "$RUNNER_TEMP/JUCE"
 
-      - name: Engine tests
-        run: build/DeadwaveTests_artefacts/Release/DeadwaveTests.exe
+      - name: Configure (Visual Studio 2022, MSVC, x64, static runtime)
+        run: >
+          cmake -S DEADWAVE -B build -G "Visual Studio 17 2022" -A x64
+          -DDEADWAVE_JUCE_PATH="$RUNNER_TEMP/JUCE"
+          -DCMAKE_MSVC_RUNTIME_LIBRARY=MultiThreaded
 
-      - name: Host test (loads the built VST3 through JUCE's VST3 hosting)
-        run: build/DeadwaveHostTest_artefacts/Release/DeadwaveHostTest.exe build/DEADWAVE_artefacts/Release/VST3/DEADWAVE.vst3
+      - name: Build (Release)
+        run: |
+          set -o pipefail
+          mkdir -p ci-logs
+          cmake --build build --config Release --parallel 4 --target DEADWAVE_VST3 DEADWAVE_Standalone DeadwaveTests DeadwaveHostTest 2>&1 | tee ci-logs/build-windows.txt | tail -30
 
-      - name: Upload VST3
-        uses: actions/upload-artifact@v4
+      - name: Package ZIPs (bundle + single file)
+        run: |
+          set -e
+          mkdir -p dist/ziproot dist/singleroot dist/tools
+          cp -r build/DEADWAVE_artefacts/Release/VST3/DEADWAVE.vst3 dist/ziproot/
+          (cd dist/ziproot && 7z a -tzip "../$ZIP_NAME" DEADWAVE.vst3 > /dev/null)
+          cp build/DEADWAVE_artefacts/Release/VST3/DEADWAVE.vst3/Contents/x86_64-win/DEADWAVE.vst3 dist/singleroot/DEADWAVE.vst3
+          (cd dist/singleroot && 7z a -tzip "../$ZIP_SINGLE" DEADWAVE.vst3 > /dev/null)
+          7z l "dist/$ZIP_NAME" | tee ci-logs/zip-listing.txt
+          cp DEADWAVE/packaging/verify-bundle.ps1 dist/
+          cp build/DeadwaveHostTest_artefacts/Release/DeadwaveHostTest.exe dist/tools/
+          {
+            echo "commit: $GITHUB_SHA"
+            echo "version: ${{ steps.ver.outputs.version }}"
+            echo "build machine: GitHub Actions windows-2022 ($ImageOS $ImageVersion)"
+            echo "generator: Visual Studio 17 2022, platform x64, configuration Release"
+            echo "compiler: $(grep -m1 -o 'Microsoft (R) C/C++[^\r]*\|MSBuild version [^\r]*' ci-logs/build-windows.txt || true)"
+            echo "runtime: MSVC static (/MT), no Visual C++ redistributable required"
+            echo "framework: JUCE 8.0.15 (VST3 SDK bundled with JUCE)"
+            echo "built: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          } > ci-logs/build-info.txt
+          cat ci-logs/build-info.txt
+
+      - name: Verify ZIP + bundle + binary, extracted to D:\Plugins
+        shell: pwsh
+        run: |
+          & dist/verify-bundle.ps1 -Zip "dist/$env:ZIP_NAME" -Dest $env:PLUGIN_DIR -Log ci-logs/bundle-checks-build-machine.txt -ExpectedVersion '${{ steps.ver.outputs.version }}'
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: Engine test-suite (native Windows)
+        run: |
+          set -o pipefail
+          build/DeadwaveTests_artefacts/Release/DeadwaveTests.exe | tee ci-logs/engine-tests-windows.txt
+
+      - name: Build Steinberg VST3 validator (static CRT)
+        run: |
+          git clone --depth 1 --recursive --shallow-submodules https://github.com/steinbergmedia/vst3sdk.git "$RUNNER_TEMP/vst3sdk"
+          cmake -S "$RUNNER_TEMP/vst3sdk" -B "$RUNNER_TEMP/vst3sdk-build" -G "Visual Studio 17 2022" -A x64 \
+                -DSMTG_ENABLE_VST3_PLUGIN_EXAMPLES=OFF -DSMTG_ENABLE_VSTGUI_SUPPORT=OFF -DSMTG_CREATE_PLUGIN_LINK=OFF \
+                -DSMTG_USE_STATIC_CRT=ON
+          cmake --build "$RUNNER_TEMP/vst3sdk-build" --config Release --target validator --parallel 4
+          cp "$RUNNER_TEMP/vst3sdk-build/bin/Release/validator.exe" dist/tools/
+
+      - name: VST3 validator (extensive) on D:\Plugins\DEADWAVE.vst3
+        run: |
+          set -o pipefail
+          dist/tools/validator.exe -e 'D:\Plugins\DEADWAVE.vst3' | tee ci-logs/vst3-validator-build-machine.txt
+
+      - name: pluginval (strictness 10) on D:\Plugins\DEADWAVE.vst3
+        run: |
+          set -o pipefail
+          curl -sSL -o "$RUNNER_TEMP/pluginval.zip" https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip
+          7z x -y -o"$RUNNER_TEMP/pluginval" "$RUNNER_TEMP/pluginval.zip" > /dev/null
+          "$RUNNER_TEMP/pluginval/pluginval.exe" --strictness-level 10 --validate-in-process --timeout-ms 1800000 \
+            'D:\Plugins\DEADWAVE.vst3' | tee ci-logs/pluginval-build-machine.txt
+
+      - name: VST3 host test (JUCE hosting) on D:\Plugins\DEADWAVE.vst3
+        run: |
+          set -o pipefail
+          dist/tools/DeadwaveHostTest.exe 'D:\Plugins\DEADWAVE.vst3' | tee ci-logs/host-test-build-machine.txt
+
+      - name: Single-file variant (D:\PluginsSingle\DEADWAVE.vst3): load + pluginval
+        shell: pwsh
+        run: |
+          $log = 'ci-logs/single-file-build-machine.txt'
+          New-Item -ItemType Directory -Force -Path D:\PluginsSingle | Out-Null
+          Expand-Archive -Path "dist/$env:ZIP_SINGLE" -DestinationPath D:\PluginsSingle -Force
+          $item = Get-Item D:\PluginsSingle\DEADWAVE.vst3
+          "D:\PluginsSingle\DEADWAVE.vst3 is a file: $(-not $item.PSIsContainer), $($item.Length) bytes" | Tee-Object -FilePath $log
+          Add-Type -Namespace DwSf -Name Native -MemberDefinition @'
+          [DllImport("kernel32.dll", SetLastError=true, CharSet=CharSet.Unicode)] public static extern IntPtr LoadLibraryExW(string path, IntPtr file, uint flags);
+          [DllImport("kernel32.dll", SetLastError=true, CharSet=CharSet.Ansi)] public static extern IntPtr GetProcAddress(IntPtr module, string name);
+          '@
+          $h = [DwSf.Native]::LoadLibraryExW('D:\PluginsSingle\DEADWAVE.vst3', [IntPtr]::Zero, 0)
+          $ok = ($h -ne [IntPtr]::Zero) -and ([DwSf.Native]::GetProcAddress($h, 'GetPluginFactory') -ne [IntPtr]::Zero)
+          "LoadLibrary + GetPluginFactory: $(if ($ok) { 'PASS' } else { 'FAIL' })" | Tee-Object -FilePath $log -Append
+          & "$env:RUNNER_TEMP\pluginval\pluginval.exe" --strictness-level 5 --validate-in-process --skip-gui-tests --timeout-ms 1200000 'D:\PluginsSingle\DEADWAVE.vst3' 2>&1 | Tee-Object -FilePath $log -Append
+          if (-not $ok) { exit 1 }
+
+      - name: Independent scan with Carla's plugin discovery (non-JUCE host)
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://github.com/falkTX/Carla/releases/download/v2.5.10/Carla-2.5.10-win64.zip -OutFile "$env:RUNNER_TEMP\carla.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\carla.zip" -DestinationPath "$env:RUNNER_TEMP\carla" -Force
+          $cd = Get-ChildItem -Path "$env:RUNNER_TEMP\carla" -Recurse -Filter 'carla-discovery-native.exe' | Select-Object -First 1
+          $log = 'ci-logs/carla-discovery-build-machine.txt'
+          "discovery tool: $($cd.FullName)" | Out-File $log -Encoding utf8
+          foreach ($target in 'D:\Plugins\DEADWAVE.vst3', 'D:\Plugins\DEADWAVE.vst3\Contents\x86_64-win\DEADWAVE.vst3') {
+            "=== carla-discovery-native vst3 $target" | Out-File $log -Append -Encoding utf8
+            $out = & $cd.FullName vst3 $target 2>&1 | Out-String
+            $out | Out-File $log -Append -Encoding utf8
+            Write-Output $out
+            if ($out -match 'carla-discovery::name::DEADWAVE') { exit 0 }
+          }
+          exit 1
+
+      - name: UI screenshots (rendered on Windows with Segoe UI)
+        continue-on-error: true
+        run: build/DeadwaveTests_artefacts/Release/DeadwaveTests.exe --snapshot ci-logs/screens 2
+
+      - uses: actions/upload-artifact@v4
         with:
-          name: DEADWAVE-VST3-Windows-x64
-          path: build/DEADWAVE_artefacts/Release/VST3/
+          name: dist
+          path: dist/
+          if-no-files-found: error
 
-      - name: Upload Standalone
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: DEADWAVE-Standalone-Windows-x64
-          path: build/DEADWAVE_artefacts/Release/Standalone/
+          name: logs-build-machine
+          path: ci-logs/
+
+  clean-machine:
+    needs: build
+    runs-on: windows-2025
+    timeout-minutes: 60
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist
+
+      - name: Verify ZIP + bundle + binary, extracted to D:\Plugins
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path ci-logs | Out-Null
+          [Environment]::OSVersion.VersionString | Out-File ci-logs/clean-machine-os.txt
+          & dist/verify-bundle.ps1 -Zip "dist/$env:ZIP_NAME" -Dest $env:PLUGIN_DIR -Log ci-logs/bundle-checks-clean-machine.txt -ExpectedVersion '${{ needs.build.outputs.version }}'
+          if ($LASTEXITCODE -ne 0) { exit 1 }
+
+      - name: VST3 validator (extensive)
+        run: |
+          set -o pipefail
+          echo "runner image: $ImageOS $ImageVersion" >> ci-logs/clean-machine-os.txt
+          dist/tools/validator.exe -e 'D:\Plugins\DEADWAVE.vst3' | tee ci-logs/vst3-validator-clean-machine.txt
+
+      - name: pluginval (strictness 10)
+        run: |
+          set -o pipefail
+          curl -sSL -o "$RUNNER_TEMP/pluginval.zip" https://github.com/Tracktion/pluginval/releases/latest/download/pluginval_Windows.zip
+          7z x -y -o"$RUNNER_TEMP/pluginval" "$RUNNER_TEMP/pluginval.zip" > /dev/null
+          "$RUNNER_TEMP/pluginval/pluginval.exe" --strictness-level 10 --validate-in-process --timeout-ms 1800000 \
+            'D:\Plugins\DEADWAVE.vst3' | tee ci-logs/pluginval-clean-machine.txt
+
+      - name: VST3 host test
+        run: |
+          set -o pipefail
+          dist/tools/DeadwaveHostTest.exe 'D:\Plugins\DEADWAVE.vst3' | tee ci-logs/host-test-clean-machine.txt
+
+      - name: Independent scan with Carla's plugin discovery
+        continue-on-error: true
+        shell: pwsh
+        run: |
+          Invoke-WebRequest -Uri https://github.com/falkTX/Carla/releases/download/v2.5.10/Carla-2.5.10-win64.zip -OutFile "$env:RUNNER_TEMP\carla.zip"
+          Expand-Archive -Path "$env:RUNNER_TEMP\carla.zip" -DestinationPath "$env:RUNNER_TEMP\carla" -Force
+          $cd = Get-ChildItem -Path "$env:RUNNER_TEMP\carla" -Recurse -Filter 'carla-discovery-native.exe' | Select-Object -First 1
+          $log = 'ci-logs/carla-discovery-clean-machine.txt'
+          "discovery tool: $($cd.FullName)" | Out-File $log -Encoding utf8
+          foreach ($target in 'D:\Plugins\DEADWAVE.vst3', 'D:\Plugins\DEADWAVE.vst3\Contents\x86_64-win\DEADWAVE.vst3') {
+            "=== carla-discovery-native vst3 $target" | Out-File $log -Append -Encoding utf8
+            $out = & $cd.FullName vst3 $target 2>&1 | Out-String
+            $out | Out-File $log -Append -Encoding utf8
+            Write-Output $out
+            if ($out -match 'carla-discovery::name::DEADWAVE') { exit 0 }
+          }
+          exit 1
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: logs-clean-machine
+          path: ci-logs/
+
+  publish:
+    needs: [ build, clean-machine ]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Assemble deliverables + TEST_REPORT.txt
+        run: |
+          set -e
+          VERSION='${{ needs.build.outputs.version }}'
+          git rm -r -q --ignore-unmatch DEADWAVE/bin DEADWAVE/docs/ci
+          rm -rf DEADWAVE/bin DEADWAVE/docs/ci
+          mkdir -p DEADWAVE/bin/support DEADWAVE/docs/ci
+          cp "artifacts/dist/$ZIP_NAME" "artifacts/dist/$ZIP_SINGLE" DEADWAVE/bin/
+          cp DEADWAVE/packaging/INSTALLATION.txt DEADWAVE/bin/
+          cp DEADWAVE/support/* DEADWAVE/bin/support/
+          cp -r artifacts/logs-build-machine/* artifacts/logs-clean-machine/* DEADWAVE/docs/ci/
+          python3 DEADWAVE/packaging/make_test_report.py \
+            --logs DEADWAVE/docs/ci --zip "DEADWAVE/bin/$ZIP_NAME" --zip-single "DEADWAVE/bin/$ZIP_SINGLE" \
+            --version "$VERSION" --out DEADWAVE/bin/TEST_REPORT.txt
+          (cd DEADWAVE/bin && sha256sum "$ZIP_NAME" "$ZIP_SINGLE" INSTALLATION.txt TEST_REPORT.txt > SHA256SUMS.txt)
+          cat DEADWAVE/bin/TEST_REPORT.txt
+
+      - name: Commit deliverables to the branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A DEADWAVE/bin DEADWAVE/docs/ci
+          if git diff --cached --quiet; then echo "nothing to commit"; exit 0; fi
+          git commit -m "CI: DEADWAVE ${{ needs.build.outputs.version }} Windows x64 VST3 for FL Studio (${GITHUB_SHA::7})"
+          for i in 1 2 3 4; do
+            git pull --rebase origin "${GITHUB_REF_NAME}" && git push origin "HEAD:${GITHUB_REF_NAME}" && exit 0
+            sleep $((i * 5))
+          done
+          exit 1
 
   linux:
     name: Linux x64 - build and tests

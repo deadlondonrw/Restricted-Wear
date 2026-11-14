@@ -20,7 +20,8 @@ struct ModRouting
 
 class DeadwaveProcessor : public juce::AudioProcessor,
                           public juce::ChangeBroadcaster,
-                          private juce::Timer
+                          private juce::Timer,
+                          private juce::AsyncUpdater
 {
 public:
     DeadwaveProcessor();
@@ -97,6 +98,9 @@ public:
 
 private:
     void timerCallback() override;
+    void handleAsyncUpdate() override;
+    void applyParameters (const juce::ValueTree& state);
+    void applyAssets (const juce::ValueTree& state);
     void syncRoutingToEngine (int slot);
     void rebuildDirtyTables();
 
@@ -114,6 +118,10 @@ private:
     juce::ValueTree uiState { "UI" };
     juce::String currentPresetName { "Init" };
     uint64_t stateSerial = 1;
+
+    /** Guards wave documents / assets against hosts that save or restore state off the message thread. */
+    mutable juce::CriticalSection stateLock;
+    juce::ValueTree pendingState; // restored off the message thread, applied asynchronously
 
     /** Background builder so long tables never stall the message thread. */
     class TableBuilder : public juce::Thread

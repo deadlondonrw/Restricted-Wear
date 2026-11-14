@@ -88,7 +88,7 @@ public:
     void setSelected (int i, bool notify);
     int getSelected() const noexcept { return selected; }
     std::function<void (int)> onChange;
-    float fontHeight = 11.5f;
+    float fontHeight = 11.0f;
 
 private:
     juce::StringArray items;
